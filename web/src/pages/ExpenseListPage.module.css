@@ -1,0 +1,14 @@
+
+.container {
+    display: grid;
+    height: 100dvh;
+    grid-template-rows: auto 1fr auto;
+}
+
+.header {
+    padding: var(--margin-sm);
+}
+
+.list {
+    overflow-y: auto;
+}

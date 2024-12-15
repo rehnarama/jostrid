@@ -1,5 +1,5 @@
-const { VITE_BACKEND_URL } = import.meta.env;
 import { z } from "zod";
+import { useData } from "./useData";
 
 export const PaidBy = z.object({
   id: z.number(),
@@ -25,9 +25,10 @@ export const Expense = z.object({
 });
 export type Expense = z.infer<typeof Expense>;
 
-export async function fetchExpenses(): Promise<Array<Expense>> {
-  const response = await fetch(`${VITE_BACKEND_URL}/api/expense`, {
-    mode: "cors",
-  });
-  return Expense.array().parse(await response.json());
-}
+export const useExpenses = () => {
+  return useData("/api/expense", Expense.array(), { suspense: true });
+};
+
+export const useExpense = (id: number | string) => {
+  return useData(`/api/expense/${id}`, Expense);
+};

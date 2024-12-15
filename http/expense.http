@@ -1,0 +1,31 @@
+{{
+    const nouns = ["apple", "book", "car", "dog", "elephant", "forest", "house", "island", "jacket", "kite"];
+    const adjectives = ["happy", "bright", "tall", "cold", "fast", "brave", "quiet", "sharp", "lazy", "strong"];
+    function randomWord(arr) {
+        const index = Math.floor(Math.random() * arr.length);
+        return arr[index];
+    }
+
+    exports.name = `${randomWord(adjectives)} ${randomWord(nouns)}`;
+    exports.shareA = Math.round(Math.random() * 100000);
+    exports.shareB = Math.round(Math.random() * 100000);
+}}
+POST http://localhost:3000/api/expense
+Content-Type: application/json
+
+{
+    "name": "{{name}}",
+    "paid_by": 1,
+    "currency": "SEK",
+    "category_id": 42,
+    "shares": [
+        {
+            "user_id": 1,
+            "share": {{shareA}}
+        },
+        {
+            "user_id": 2,
+            "share": {{shareB}}
+        }
+    ]
+}

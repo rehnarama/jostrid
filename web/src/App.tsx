@@ -1,14 +1,15 @@
-import { RouterProvider as AriaRouterProvider } from "react-aria-components";
 import { createBrowserRouter, Outlet, RouterProvider } from "react-router-dom";
 import { routes } from "./routes";
-import { useNavigate, useHref } from "react-router";
+import { CssVarsProvider } from "@mui/joy/styles";
+import CssBaseline from "@mui/joy/CssBaseline";
+import { Suspense } from "react";
 
 const Bootstrap = () => {
-  let navigate = useNavigate();
   return (
-    <AriaRouterProvider navigate={navigate} useHref={useHref}>
+    <CssVarsProvider>
+      <CssBaseline />
       <Outlet />
-    </AriaRouterProvider>
+    </CssVarsProvider>
   );
 };
 

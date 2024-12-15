@@ -4,6 +4,12 @@
   font-weight: 400;
 
   box-sizing: border-box;
+
+  --margin-xxs: 2px;
+  --margin-xs: 4px;
+  --margin-sm: 8px;
+  --margin-md: 12px;
+  --margin-lg: 16px;
 }
 
 body {

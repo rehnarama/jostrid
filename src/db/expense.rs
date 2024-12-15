@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::Utc;
+use chrono::{Utc};
 use serde::Serialize;
 use sqlx::{postgres::PgRow, FromRow, PgPool, Row};
 
@@ -18,7 +18,8 @@ SELECT
     ec.name as category_name 
 FROM expense as e
 LEFT JOIN users as u ON e.paid_by = u.id
-LEFT JOIN expense_category as ec ON e.category_id = ec.id;
+LEFT JOIN expense_category as ec ON e.category_id = ec.id
+ORDER BY e.created_at DESC;
 "#;
 
 static GET_ONE_EXPENSE: &str = r#"
@@ -61,7 +62,7 @@ pub struct InsertExpense {
     pub paid_by: i32,
     pub currency: String,
     pub category_id: Option<i32>,
-    pub shares: Vec<InsertAccountShare>
+    pub shares: Vec<InsertAccountShare>,
 }
 
 #[derive(sqlx::FromRow, Serialize, Clone, Copy)]
@@ -137,11 +138,10 @@ pub async fn get_expense(
     expense_id: i32,
     pool: &PgPool,
 ) -> Result<Option<(ExpenseWithPayerAndCategory, Vec<AccountShare>)>, sqlx::Error> {
-    let result: Result<ExpenseWithPayerAndCategory, _> =
-        sqlx::query_as(GET_ONE_EXPENSE)
-            .bind(expense_id)
-            .fetch_one(pool)
-            .await;
+    let result: Result<ExpenseWithPayerAndCategory, _> = sqlx::query_as(GET_ONE_EXPENSE)
+        .bind(expense_id)
+        .fetch_one(pool)
+        .await;
 
     match result {
         Ok(expense) => {
@@ -164,7 +164,7 @@ pub async fn insert_expense(
 ) -> Result<(ExpenseWithPayerAndCategory, Vec<AccountShare>), sqlx::Error> {
     let expense_id: i32 = sqlx::query(INSERT_EXPENSE)
         .bind(expense.name)
-        .bind(expense.created_at)
+        .bind(expense.created_at.unwrap_or(Utc::now()))
         .bind(expense.paid_by)
         .bind(expense.currency)
         .bind(expense.category_id)

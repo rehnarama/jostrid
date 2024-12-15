@@ -1,51 +1,91 @@
-import { useState } from "react";
-import { Outlet, useMatch, useNavigate } from "react-router";
-import { GridList, GridListItem } from "../rac/GridList";
-import { Modal } from "../rac/Modal";
-import { ModalOverlay } from "react-aria-components";
-import { Button } from "../rac/Button";
-import { useTypedLoaderData } from "../hooks/useTypedLoaderData";
-import { Expense } from "../loaders/ExpenseLoader";
+import { useMemo, useState } from "react";
+import { IconChevronRight, IconPlus } from "@tabler/icons-react";
+import {
+  Button,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemContent,
+  ListSubheader,
+  Sheet,
+  Stack,
+  Typography,
+} from "@mui/joy";
+import groupBy from "lodash-es/groupBy";
 
-const PAGE_SIZE = 20;
+import classes from "./ExpenseListPage.module.css";
+import { Link } from "../components/Link";
+import { useExpenses } from "../hooks/useExpenses";
+import { NewExpenseModal } from "../components/NewExpenseModal";
+
+const PAGE_SIZE = 10;
+const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
 export const ExpenseListPage = () => {
-  const navigate = useNavigate();
-  const match = useMatch(`/expense/:id`);
+  const [newModalOpen, setNewModalOpen] = useState(false);
   const [limit, setLimit] = useState(PAGE_SIZE);
-  const expenses = useTypedLoaderData(Expense.array());
+  const expenses = useExpenses().data;
+  const groupedExpenses = useMemo(() => {
+    return groupBy(expenses, (expense) => {
+      const time = new Date(expense.created_at).getTime();
+      return time - (time % DAY_IN_MS);
+    });
+  }, [expenses]);
+  const dates = Object.keys(groupedExpenses).toSorted(
+    (a, b) => Number(b) - Number(a)
+  );
 
   return (
-    <div>
-      <GridList aria-label="Expenses">
-        {expenses.slice(0, limit).map((expense) => {
+    <Sheet className={classes.container}>
+      <header className={classes.header}>
+        <Stack direction="column" alignItems="flex-start" spacing={1}>
+          <Typography level="h1">Utgifter</Typography>
+          <Button
+            startDecorator={<IconPlus />}
+            onClick={() => setNewModalOpen((prev) => !prev)}
+          >
+            Ny utgift
+          </Button>
+        </Stack>
+      </header>
+      <List className={classes.list} sx={{ padding: 0 }}>
+        {dates.slice(0, limit).map((date) => {
+          const expenses = groupedExpenses[date];
           return (
-            <GridListItem
-              key={expense.id}
-              textValue={expense.name}
-              href={`/expense/${expense.id}`}
-            >
-              {expense.name}
-            </GridListItem>
+            <ListItem nested key={date}>
+              <ListSubheader sticky>
+                {new Date(Number(date)).toLocaleDateString()}
+              </ListSubheader>
+              <List>
+                {expenses.map((expense) => {
+                  return (
+                    <ListItemButton
+                      key={expense.id}
+                      component={Link}
+                      to={`/expense/${expense.id}`}
+                    >
+                      <ListItemContent>{expense.name}</ListItemContent>
+                      <IconChevronRight />
+                    </ListItemButton>
+                  );
+                })}
+              </List>
+            </ListItem>
           );
         })}
-      </GridList>
-      <ModalOverlay
-        isOpen={match !== null}
-        isDismissable
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            navigate("/expense");
-          }
-        }}
-      >
-        <Modal>
-          <Outlet />
-        </Modal>
-      </ModalOverlay>
-      <Button onPress={() => setLimit((oldLimit) => oldLimit + PAGE_SIZE)}>
-        Load More
-      </Button>
-    </div>
+        {limit < dates.length && (
+          <Button
+            variant="plain"
+            onClick={() => setLimit((oldLimit) => oldLimit + PAGE_SIZE)}
+          >
+            Load More
+          </Button>
+        )}
+      </List>
+      <NewExpenseModal
+        open={newModalOpen}
+        onClose={() => setNewModalOpen(false)}
+      />
+    </Sheet>
   );
 };
