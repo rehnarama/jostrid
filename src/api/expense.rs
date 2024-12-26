@@ -24,6 +24,7 @@ pub struct ExpenseDto {
     pub name: String,
     pub currency: String,
     pub created_at: chrono::DateTime<Utc>,
+    pub is_payment: bool,
 }
 
 impl From<&Expense> for ExpenseDto {
@@ -33,6 +34,7 @@ impl From<&Expense> for ExpenseDto {
             name: value.name.clone(),
             currency: value.currency.clone(),
             created_at: value.created_at.clone(),
+            is_payment: value.is_payment,
         }
     }
 }
@@ -62,6 +64,7 @@ struct CreateExpenseDto {
     currency: String,
     category_id: Option<i32>,
     shares: Vec<CreateAccountShareDto>,
+    is_payment: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -144,6 +147,7 @@ async fn create_expense(
         currency: expense.currency,
         name: expense.name,
         paid_by: expense.paid_by,
+        is_payment: expense.is_payment,
         shares: expense
             .shares
             .into_iter()

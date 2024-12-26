@@ -56,7 +56,8 @@ CREATE TABLE
         category_id INTEGER REFERENCES expense_category (id),
         paid_by INTEGER NOT NULL REFERENCES users (id),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        currency TEXT NOT NULL
+        currency TEXT NOT NULL,
+        is_payment BOOLEAN NOT NULL
     );
 
 CREATE TABLE

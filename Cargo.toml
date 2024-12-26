@@ -7,14 +7,15 @@ edition = "2021"
 
 [dependencies]
 axum = { version = "0.7.5", features = ["macros"] }
-tower-http = { version = "0.5.2", features = ["cors"]}
+tower-http = { version = "0.5.2", features = ["cors"] }
+tower-sessions = "0.13.0"
+tower-cookies = "0.10.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.68"
 tokio = { version = "1.0", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dotenvy = "0.15"
-diesel_migrations = "2.2.0"
 sqlx = { version = "0.7", features = [
     "runtime-tokio-rustls",
     "postgres",
@@ -22,3 +23,9 @@ sqlx = { version = "0.7", features = [
 ] }
 futures = "0.3.30"
 chrono = { version = "0.4.38", features = ["serde"] }
+oauth2 = "4.4.2"
+time = "0.3.37"
+thiserror = "2.0.8"
+reqwest = { version = "0.12.9", features = ["json"] }
+tower = "0.5.2"
+jwt-authorizer = "0.15.0"

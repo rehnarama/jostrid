@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { useData } from "./useData";
+const { VITE_BACKEND_URL } = import.meta.env;
 
 export const PaidBy = z.object({
   id: z.number(),
@@ -14,19 +15,56 @@ export const Share = z.object({
 });
 export type Share = z.infer<typeof Share>;
 
+export const Category = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+
 export const Expense = z.object({
   id: z.number(),
   name: z.string(),
   currency: z.string(),
-  created_at: z.string(),
+  created_at: z.string().datetime(),
   paid_by: PaidBy,
-  category: z.any(),
+  category: Category.nullable(),
   shares: z.array(Share),
+  is_payment: z.boolean(),
 });
 export type Expense = z.infer<typeof Expense>;
 
+export type CreateAccountShareDto = {
+  user_id: number;
+  share: number;
+};
+export type CreateExpenseDto = {
+  name: string;
+  created_at: string;
+  paid_by: number;
+  currency: string;
+  category_id?: number | undefined;
+  shares: CreateAccountShareDto[];
+};
+
 export const useExpenses = () => {
-  return useData("/api/expense", Expense.array(), { suspense: true });
+  const result = useData("/api/expense", Expense.array(), { suspense: true });
+
+  const create = async (createExpenseDto: CreateExpenseDto) => {
+    const response = await fetch(`${VITE_BACKEND_URL}/api/expense`, {
+      mode: "cors",
+      method: "POST",
+      body: JSON.stringify(createExpenseDto),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    const newExpense = Expense.parse(await response.json());
+
+    result.mutate((current = []) => {
+      return [newExpense, ...current];
+    });
+  };
+
+  return { ...result, create };
 };
 
 export const useExpense = (id: number | string) => {

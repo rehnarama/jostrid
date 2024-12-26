@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
-import { IconChevronRight, IconPlus } from "@tabler/icons-react";
+import { IconPlus } from "@tabler/icons-react";
 import {
+  Avatar,
   Button,
   List,
   ListItem,
   ListItemButton,
   ListItemContent,
+  ListItemDecorator,
   ListSubheader,
   Sheet,
   Stack,
@@ -17,6 +19,9 @@ import classes from "./ExpenseListPage.module.css";
 import { Link } from "../components/Link";
 import { useExpenses } from "../hooks/useExpenses";
 import { NewExpenseModal } from "../components/NewExpenseModal";
+import { ExpenseAmount } from "../components/ExpenseAmount";
+import { getPaidString, getPaymentString } from "../utils/expenseUtils";
+import { useUsers } from "../hooks/useUser";
 
 const PAGE_SIZE = 10;
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
@@ -24,7 +29,8 @@ const DAY_IN_MS = 1000 * 60 * 60 * 24;
 export const ExpenseListPage = () => {
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [limit, setLimit] = useState(PAGE_SIZE);
-  const expenses = useExpenses().data;
+  const { data: expenses } = useExpenses();
+  const { data: users } = useUsers();
   const groupedExpenses = useMemo(() => {
     return groupBy(expenses, (expense) => {
       const time = new Date(expense.created_at).getTime();
@@ -63,9 +69,26 @@ export const ExpenseListPage = () => {
                       key={expense.id}
                       component={Link}
                       to={`/expense/${expense.id}`}
+                      sx={{ "--ListItemDecorator-size": "56px" }}
                     >
-                      <ListItemContent>{expense.name}</ListItemContent>
-                      <IconChevronRight />
+                      <ListItemDecorator>
+                        <Avatar>{expense.category?.name.slice(0, 2).toUpperCase() ?? "?"}</Avatar>
+                      </ListItemDecorator>
+                      <ListItemContent>
+                        <Typography level="title-sm" sx={{ display: "block" }}>
+                          {expense.name}
+                        </Typography>
+                        <Typography
+                          level="body-sm"
+                          noWrap
+                          sx={{ display: "block" }}
+                        >
+                          {expense.is_payment
+                            ? getPaymentString(expense, users)
+                            : getPaidString(expense)}
+                        </Typography>
+                      </ListItemContent>
+                      <ExpenseAmount expense={expense} />
                     </ListItemButton>
                   );
                 })}

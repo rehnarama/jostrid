@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{Utc};
+use chrono::Utc;
 use serde::Serialize;
 use sqlx::{postgres::PgRow, FromRow, PgPool, Row};
 
@@ -13,6 +13,7 @@ SELECT
     e.created_at, 
     e.paid_by, 
     e.currency,
+    e.is_payment,
     u.name as paid_by_name, 
     e.category_id, 
     ec.name as category_name 
@@ -29,7 +30,9 @@ SELECT
     e.created_at, 
     e.paid_by, 
     e.currency,
+    e.is_payment,
     u.name as paid_by_name, 
+    u.email as paid_by_email, 
     e.category_id, 
     ec.name as category_name 
 FROM expense as e
@@ -39,8 +42,8 @@ WHERE e.id = $1;
 "#;
 
 static INSERT_EXPENSE: &str = r#"
-INSERT INTO expense (name, created_at, paid_by, currency, category_id)
-VALUES($1, $2, $3, $4, $5)
+INSERT INTO expense (name, created_at, paid_by, currency, category_id, is_payment)
+VALUES($1, $2, $3, $4, $5, $6)
 RETURNING id;
 "#;
 
@@ -55,6 +58,7 @@ pub struct Expense {
     pub name: String,
     pub currency: String,
     pub created_at: chrono::DateTime<Utc>,
+    pub is_payment: bool,
 }
 pub struct InsertExpense {
     pub name: String,
@@ -63,6 +67,7 @@ pub struct InsertExpense {
     pub currency: String,
     pub category_id: Option<i32>,
     pub shares: Vec<InsertAccountShare>,
+    pub is_payment: bool,
 }
 
 #[derive(sqlx::FromRow, Serialize, Clone, Copy)]
@@ -88,10 +93,11 @@ impl FromRow<'_, PgRow> for ExpenseWithPayerAndCategory {
         let paid_by = User {
             id: row.try_get("paid_by")?,
             name: row.try_get("paid_by_name")?,
+            email: row.try_get("paid_by_email")?,
         };
-        let category = if let Some(name) = row.try_get("category_id").ok() {
+        let category = if let Some(name) = row.try_get("category_name").ok() {
             Some(ExpenseCategory {
-                id: row.try_get("category_name")?,
+                id: row.try_get("category_id")?,
                 name,
             })
         } else {
@@ -162,12 +168,14 @@ pub async fn insert_expense(
     expense: InsertExpense,
     pool: &PgPool,
 ) -> Result<(ExpenseWithPayerAndCategory, Vec<AccountShare>), sqlx::Error> {
+    dbg!(expense.category_id);
     let expense_id: i32 = sqlx::query(INSERT_EXPENSE)
         .bind(expense.name)
         .bind(expense.created_at.unwrap_or(Utc::now()))
         .bind(expense.paid_by)
         .bind(expense.currency)
         .bind(expense.category_id)
+        .bind(expense.is_payment)
         .map(|row| row.get("id"))
         .fetch_one(pool)
         .await?;

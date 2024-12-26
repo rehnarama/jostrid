@@ -2,10 +2,7 @@ use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-use crate::db::{
-    self,
-    balance::{self, Balance},
-};
+use crate::db::{self, balance::Balance};
 
 use super::util::internal_error;
 

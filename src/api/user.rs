@@ -11,6 +11,7 @@ use crate::{
 pub struct UserDto {
     id: i32,
     name: String,
+    email: String,
 }
 
 impl From<&User> for UserDto {
@@ -18,6 +19,7 @@ impl From<&User> for UserDto {
         UserDto {
             id: value.id,
             name: value.name.clone(),
+            email: value.email.clone(),
         }
     }
 }

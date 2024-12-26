@@ -2,13 +2,15 @@ import { createBrowserRouter, Outlet, RouterProvider } from "react-router-dom";
 import { routes } from "./routes";
 import { CssVarsProvider } from "@mui/joy/styles";
 import CssBaseline from "@mui/joy/CssBaseline";
-import { Suspense } from "react";
+import { ToastProvider } from "./hooks/useToast";
 
 const Bootstrap = () => {
   return (
     <CssVarsProvider>
       <CssBaseline />
-      <Outlet />
+      <ToastProvider>
+        <Outlet />
+      </ToastProvider>
     </CssVarsProvider>
   );
 };
