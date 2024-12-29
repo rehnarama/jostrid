@@ -15,9 +15,7 @@ export const useData = <
   return useSWR(
     url,
     async (arg) => {
-      const response = await fetch(`${VITE_BACKEND_URL}${arg}`, {
-        mode: "cors",
-      });
+      const response = await fetch(`${VITE_BACKEND_URL}${arg}`);
       return schema.parse(await response.json());
     },
     config

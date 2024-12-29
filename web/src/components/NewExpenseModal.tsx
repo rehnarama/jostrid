@@ -1,27 +1,23 @@
-import {
-  Box,
-  Button,
-  CircularProgress,
-  FormControl,
-  FormLabel,
-  Input,
-  Modal,
-  ModalDialog,
-  Option,
-  Radio,
-  RadioGroup,
-  Select,
-  Slider,
-  Stack,
-  Typography,
-} from "@mui/joy";
 import { useExpenseCategory } from "../hooks/useExpenseCategory";
 import { FormEvent, useState } from "react";
 import { useUsers } from "../hooks/useUser";
 import { assert } from "../utils/assert";
 import { CreateExpenseDto, useExpenses } from "../hooks/useExpenses";
 import { useToast } from "../hooks/useToast";
-// import classes from "./NewExpenseModal.module.css";
+import {
+  Button,
+  Form,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalHeader,
+  Radio,
+  RadioGroup,
+  Select,
+  SelectItem,
+  Slider,
+} from "@nextui-org/react";
 
 const AMOUNT_REGEX = /\d+([.,]\d+)?/;
 const NUMBER_REGEX = /\d+/;
@@ -35,10 +31,10 @@ export const NewExpenseModal = (props: NewExpenseModalProps) => {
   const toast = useToast();
   const categories = useExpenseCategory();
   const { create: createExpense } = useExpenses();
-  const [currency, _setCurrency] = useState("SEK");
+  const [currency] = useState("SEK");
   const { data: users } = useUsers();
   const [sharePercentage, setSharePercentage] = useState<number[]>(
-    users.map(() => 100 / users.length)
+    users.map(() => 1 / users.length)
   );
 
   const [isCreating, setIsCreating] = useState(false);
@@ -65,9 +61,10 @@ export const NewExpenseModal = (props: NewExpenseModalProps) => {
       shares: users.map((user, i) => {
         return {
           user_id: user.id,
-          share: Math.round(Number(total) * sharePercentage[i] * 100), // Round to closest 'cent'
+          share: Math.round(Number(total) * sharePercentage[i]), // We actually have `* 100 / 100` here to go from [0, 100] -> [0, 1] and then to cents from full amount
         };
       }),
+      is_payment: false,
     };
 
     try {
@@ -82,108 +79,89 @@ export const NewExpenseModal = (props: NewExpenseModalProps) => {
   };
 
   return (
-    <Modal open={props.open ?? false} onClose={props.onClose}>
-      <ModalDialog variant="outlined">
-        <Typography>Ny utgift</Typography>
-        <form onSubmit={onSubmit}>
-          <Stack direction="column" spacing={2}>
-            <FormControl required>
-              <FormLabel>Namn</FormLabel>
-              <Input name="name" placeholder="T.ex. willys" />
-            </FormControl>
+    <Modal isOpen={props.open ?? false} onClose={props.onClose}>
+      <ModalContent>
+        <ModalHeader>Ny utgift</ModalHeader>
+        <ModalBody>
+          <Form validationBehavior="native" onSubmit={onSubmit}>
+            <Input label="Utgiftnamn" name="name" isRequired />
 
-            <FormControl required>
-              <FormLabel>Totalt</FormLabel>
-              <Input name="total" type="number" endDecorator={currency} />
-            </FormControl>
+            <Input
+              label="Totalt"
+              name="total"
+              type="number"
+              endContent={currency}
+              isRequired
+            />
 
-            <FormControl required>
-              <FormLabel>Betalare</FormLabel>
-              <RadioGroup name="paidBy">
-                {users.map((user) => (
-                  <Radio key={user.id} value={user.id} label={user.name} />
-                ))}
-              </RadioGroup>
-            </FormControl>
+            <RadioGroup label="Betalare" name="paidBy" isRequired>
+              {users.map((user) => (
+                <Radio key={user.id} value={String(user.id)}>
+                  {user.name}
+                </Radio>
+              ))}
+            </RadioGroup>
 
-            <FormControl>
-              <FormLabel>Andel</FormLabel>
-              <Box paddingLeft={2} paddingRight={2}>
-                <Slider
-                  name="share"
-                  min={0}
-                  max={100}
-                  step={1}
-                  track={false}
-                  value={sharePercentage.slice(0, -1).map((percentage, i) => {
-                    const prevSum = sharePercentage
-                      .slice(0, i)
-                      .reduce((a, b) => a + b, 0);
+            <Slider
+              label="Andel"
+              name="share"
+              minValue={0}
+              maxValue={100}
+              step={1}
+              value={sharePercentage.slice(0, -1).map((percentage, i) => {
+                const prevSum = sharePercentage
+                  .slice(0, i)
+                  .reduce((a, b) => a + b, 0);
 
-                    return prevSum + percentage;
-                  })}
-                  onChange={(_, values) => {
-                    assert(Array.isArray(values));
+                return prevSum + percentage;
+              })}
+              onChange={(values) => {
+                assert(Array.isArray(values));
 
-                    let prev = 0;
-                    let shares: number[] = [];
-                    for (const value of values) {
-                      shares.push(value - prev);
-                      prev = value;
-                    }
-                    shares.push(100 - prev);
-                    setSharePercentage(shares);
-                  }}
-                  marks={users.map((user, i) => {
-                    const previous = sharePercentage
-                      .slice(0, i)
-                      .reduce((share, sum) => share + sum, 0);
-                    const next = sharePercentage
-                      .slice(0, i + 1)
-                      .reduce((share, sum) => share + sum, 0);
-
-                    return {
-                      value: (previous + next) / 2,
-                      label: `${user.name.slice(0, 1)} (${sharePercentage[i]}%) `,
-                    };
-                  })}
-                />
-              </Box>
-            </FormControl>
-
-            <FormControl>
-              <FormLabel>Kategori</FormLabel>
-              <Select name="category">
-                {categories.data.map((category) => (
-                  <Option key={category.id} value={category.id}>
-                    {category.name}
-                  </Option>
-                ))}
-              </Select>
-            </FormControl>
-
-            <Stack direction="row" spacing={2}>
-              <Button
-                sx={{ flex: 1 }}
-                type="submit"
-                disabled={isCreating}
-                endDecorator={
-                  isCreating ? <CircularProgress size="sm" /> : null
+                let prev = 0;
+                const shares: number[] = [];
+                for (const value of values) {
+                  shares.push(value - prev);
+                  prev = value;
                 }
-              >
-                Skapa
-              </Button>
-              <Button
-                sx={{ flex: 1 }}
-                onClick={props.onClose}
-                variant="outlined"
-              >
-                Avbryt
-              </Button>
-            </Stack>
-          </Stack>
-        </form>
-      </ModalDialog>
+                shares.push(100 - prev);
+                setSharePercentage(shares);
+              }}
+              marks={users.map((user, i) => {
+                const previous = sharePercentage
+                  .slice(0, i)
+                  .reduce((share, sum) => share + sum, 0);
+                const next = sharePercentage
+                  .slice(0, i + 1)
+                  .reduce((share, sum) => share + sum, 0);
+
+                return {
+                  value: (previous + next) / 2,
+                  label: `${user.name.slice(0, 1)}\u00A0(${sharePercentage[i]}%) `,
+                };
+              })}
+            />
+
+            <Select label="Kategori" name="category">
+              {categories.data.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </Select>
+
+            <Button
+              className="self-stretch"
+              type="submit"
+              disabled={isCreating}
+              isLoading={isCreating}
+              color="primary"
+            >
+              Skapa
+            </Button>
+          </Form>
+        </ModalBody>
+      </ModalContent>
     </Modal>
   );
 };

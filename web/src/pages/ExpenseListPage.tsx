@@ -1,18 +1,5 @@
 import { useMemo, useState } from "react";
 import { IconPlus } from "@tabler/icons-react";
-import {
-  Avatar,
-  Button,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemContent,
-  ListItemDecorator,
-  ListSubheader,
-  Sheet,
-  Stack,
-  Typography,
-} from "@mui/joy";
 import groupBy from "lodash-es/groupBy";
 
 import classes from "./ExpenseListPage.module.css";
@@ -22,6 +9,13 @@ import { NewExpenseModal } from "../components/NewExpenseModal";
 import { ExpenseAmount } from "../components/ExpenseAmount";
 import { getPaidString, getPaymentString } from "../utils/expenseUtils";
 import { useUsers } from "../hooks/useUser";
+import {
+  Avatar,
+  Button,
+  Listbox,
+  ListboxItem,
+  ListboxSection,
+} from "@nextui-org/react";
 
 const PAGE_SIZE = 10;
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
@@ -42,73 +36,56 @@ export const ExpenseListPage = () => {
   );
 
   return (
-    <Sheet className={classes.container}>
+    <div>
       <header className={classes.header}>
-        <Stack direction="column" alignItems="flex-start" spacing={1}>
-          <Typography level="h1">Utgifter</Typography>
-          <Button
-            startDecorator={<IconPlus />}
-            onClick={() => setNewModalOpen((prev) => !prev)}
-          >
-            Ny utgift
-          </Button>
-        </Stack>
+        <h1 className="text-4xl mb-2">Utgifter</h1>
+        <Button
+          startContent={<IconPlus />}
+          onPress={() => setNewModalOpen((prev) => !prev)}
+          color="primary"
+        >
+          Ny utgift
+        </Button>
       </header>
-      <List className={classes.list} sx={{ padding: 0 }}>
-        {dates.slice(0, limit).map((date) => {
+      <Listbox>
+        {dates.map((date) => {
           const expenses = groupedExpenses[date];
           return (
-            <ListItem nested key={date}>
-              <ListSubheader sticky>
-                {new Date(Number(date)).toLocaleDateString()}
-              </ListSubheader>
-              <List>
-                {expenses.map((expense) => {
-                  return (
-                    <ListItemButton
-                      key={expense.id}
-                      component={Link}
-                      to={`/expense/${expense.id}`}
-                      sx={{ "--ListItemDecorator-size": "56px" }}
-                    >
-                      <ListItemDecorator>
-                        <Avatar>{expense.category?.name.slice(0, 2).toUpperCase() ?? "?"}</Avatar>
-                      </ListItemDecorator>
-                      <ListItemContent>
-                        <Typography level="title-sm" sx={{ display: "block" }}>
-                          {expense.name}
-                        </Typography>
-                        <Typography
-                          level="body-sm"
-                          noWrap
-                          sx={{ display: "block" }}
-                        >
-                          {expense.is_payment
-                            ? getPaymentString(expense, users)
-                            : getPaidString(expense)}
-                        </Typography>
-                      </ListItemContent>
-                      <ExpenseAmount expense={expense} />
-                    </ListItemButton>
-                  );
-                })}
-              </List>
-            </ListItem>
+            <ListboxSection
+              key={date}
+              title={new Date(Number(date)).toLocaleDateString()}
+            >
+              {expenses.map((expense) => {
+                return (
+                  <ListboxItem
+                    key={expense.id}
+                    description={
+                      expense.is_payment
+                        ? getPaymentString(expense, users)
+                        : getPaidString(expense)
+                    }
+                    startContent={
+                      <Avatar
+                        size="sm"
+                        name={expense.category?.name ?? "Okänd"}
+                        className="flex-shrink-0"
+                      />
+                    }
+                    endContent={<ExpenseAmount expense={expense} />}
+                    href={`/expense/${expense.id}`}
+                  >
+                    {expense.name}
+                  </ListboxItem>
+                );
+              })}
+            </ListboxSection>
           );
         })}
-        {limit < dates.length && (
-          <Button
-            variant="plain"
-            onClick={() => setLimit((oldLimit) => oldLimit + PAGE_SIZE)}
-          >
-            Load More
-          </Button>
-        )}
-      </List>
+      </Listbox>
       <NewExpenseModal
         open={newModalOpen}
         onClose={() => setNewModalOpen(false)}
       />
-    </Sheet>
+    </div>
   );
 };

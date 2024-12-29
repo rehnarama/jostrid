@@ -1,12 +1,8 @@
-import {
-  CircularProgress,
-  Link as JoyLink,
-  LinkProps as JoyLinkProps,
-} from "@mui/joy";
 import { forwardRef, useTransition } from "react";
 import { To, useHref, useNavigate } from "react-router";
+import { Link as NextLink } from "@nextui-org/react";
 
-export interface LinkProps extends JoyLinkProps {
+export interface LinkProps {
   to: To;
   defer?: boolean;
 }
@@ -16,7 +12,7 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
   ref
 ) {
   const routerNavigate = useNavigate();
-  const [isTransitioning, startTransition] = useTransition();
+  const [_isTransitioning, startTransition] = useTransition();
   const href = useHref(to);
 
   const navigate = (to: To) => {
@@ -30,7 +26,7 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
   };
 
   return (
-    <JoyLink
+    <NextLink
       {...linkProps}
       ref={ref}
       href={href}
@@ -38,7 +34,6 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
         e.preventDefault();
         navigate(to);
       }}
-      startDecorator={isTransitioning ? <CircularProgress size="sm" /> : null}
     />
   );
 });

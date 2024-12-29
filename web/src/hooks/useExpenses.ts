@@ -43,6 +43,7 @@ export type CreateExpenseDto = {
   currency: string;
   category_id?: number | undefined;
   shares: CreateAccountShareDto[];
+  is_payment: boolean;
 };
 
 export const useExpenses = () => {
@@ -68,5 +69,5 @@ export const useExpenses = () => {
 };
 
 export const useExpense = (id: number | string) => {
-  return useData(`/api/expense/${id}`, Expense);
+  return useData(`/api/expense/${id}`, Expense, { suspense: true });
 };

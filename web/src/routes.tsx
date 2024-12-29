@@ -1,6 +1,8 @@
-import { Navigate, RouteObject } from "react-router";
+import { RouteObject } from "react-router";
 import { ExpenseListPage } from "./pages/ExpenseListPage";
 import { ExpensePage } from "./pages/ExpensePage";
+import { HomePage } from "./pages/HomePage";
+import { LoginPage } from "./pages/LoginPage";
 
 export const routes: RouteObject[] = [
   {
@@ -12,7 +14,11 @@ export const routes: RouteObject[] = [
     element: <ExpensePage />,
   },
   {
+    path: "/login",
+    element: <LoginPage />,
+  },
+  {
     path: "/",
-    element: <Navigate to="/expense" replace />,
+    element: <HomePage />,
   },
 ];

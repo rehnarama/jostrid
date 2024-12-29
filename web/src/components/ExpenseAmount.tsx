@@ -1,4 +1,4 @@
-import { Typography } from "@mui/joy";
+import classNames from "classnames";
 import { Expense } from "../hooks/useExpenses";
 
 export interface ExpenseAmountProps {
@@ -20,22 +20,34 @@ export const ExpenseAmount = ({ expense }: ExpenseAmountProps) => {
   }
   return (
     <div>
-      <Typography
-        color={myShare.share > 0 ? "success" : "danger"}
-        level="title-sm"
-        textAlign="right"
-        sx={{ display: "block" }}
+      <p
+        className={classNames(
+          {
+            ["text-success"]: myShare.share > 0,
+            ["text-danger"]: myShare.share < 0,
+          },
+          "text-xs",
+          "text-right",
+          "text-nowrap",
+          "block",
+          "font-bold"
+        )}
       >
         {myShare.share > 0 ? "Du lånade ut" : "Du lånade"}
-      </Typography>
-      <Typography
-        color={myShare.share > 0 ? "success" : "danger"}
-        level="body-sm"
-        textAlign="right"
-        sx={{ display: "block" }}
+      </p>
+      <p
+        className={classNames(
+          {
+            ["text-success"]: myShare.share > 0,
+            ["text-danger"]: myShare.share < 0,
+          },
+          "text-xs",
+          "text-right",
+          "block"
+        )}
       >
         {formatter.format(Math.abs(myShare.share / 100))}
-      </Typography>
+      </p>
     </div>
   );
 };
