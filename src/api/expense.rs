@@ -6,7 +6,6 @@ use axum::{
 };
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 
 use crate::{
     api::util::internal_error,
@@ -14,6 +13,7 @@ use crate::{
         self,
         expense::{AccountShare, Expense, InsertAccountShare, InsertExpense},
     },
+    server::application::App,
 };
 
 use super::{expense_category::ExpenseCategoryDto, user::UserDto};
@@ -33,7 +33,7 @@ impl From<&Expense> for ExpenseDto {
             id: value.id,
             name: value.name.clone(),
             currency: value.currency.clone(),
-            created_at: value.created_at.clone(),
+            created_at: value.created_at,
             is_payment: value.is_payment,
         }
     }
@@ -82,7 +82,7 @@ pub struct ExpenseWithEverythingDto {
     shares: Vec<AccountShareDto>,
 }
 
-pub fn get_expense_api(pool: PgPool) -> Router {
+pub fn get_expense_api() -> Router<App> {
     Router::new()
         .route(
             "/",
@@ -92,13 +92,12 @@ pub fn get_expense_api(pool: PgPool) -> Router {
                 .delete(delete_expense),
         )
         .route("/:id", get(get_expense))
-        .with_state(pool)
 }
 
 async fn get_expenses(
-    State(pool): State<PgPool>,
+    State(app): State<App>,
 ) -> Result<Json<Vec<ExpenseWithEverythingDto>>, (StatusCode, String)> {
-    let expenses = db::expense::get_expenses(&pool)
+    let expenses = db::expense::get_expenses(&app.db)
         .await
         .map_err(internal_error)?;
 
@@ -117,9 +116,9 @@ async fn get_expenses(
 
 async fn get_expense(
     Path(id): Path<i32>,
-    State(pool): State<PgPool>,
+    State(app): State<App>,
 ) -> Result<Json<ExpenseWithEverythingDto>, (StatusCode, String)> {
-    let expense = db::expense::get_expense(id, &pool)
+    let expense = db::expense::get_expense(id, &app.db)
         .await
         .map_err(internal_error)?
         .map(|(expense, shares)| ExpenseWithEverythingDto {
@@ -138,7 +137,7 @@ async fn update_expense() -> Json<ExpenseWithEverythingDto> {
 }
 
 async fn create_expense(
-    State(pool): State<PgPool>,
+    State(app): State<App>,
     Json(expense): Json<CreateExpenseDto>,
 ) -> Result<Json<ExpenseWithEverythingDto>, (StatusCode, String)> {
     let to_insert = InsertExpense {
@@ -158,7 +157,7 @@ async fn create_expense(
             .collect(),
     };
 
-    let new_expense = db::expense::insert_expense(to_insert, &pool)
+    let new_expense = db::expense::insert_expense(to_insert, &app.db)
         .await
         .map_err(internal_error)?;
     Ok(Json(ExpenseWithEverythingDto {

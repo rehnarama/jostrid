@@ -29,3 +29,5 @@ thiserror = "2.0.8"
 reqwest = { version = "0.12.9", features = ["json"] }
 tower = "0.5.2"
 jwt-authorizer = "0.15.0"
+hyper-util = { version = "0.1.1", features = ["client-legacy"] }
+hyper = { version = "1.0.0", features = ["full"] }

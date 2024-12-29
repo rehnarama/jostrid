@@ -1,29 +1,21 @@
 use std::env;
 
-use axum::{
-    async_trait,
-    extract::FromRequestParts,
-    http::{request::Parts, StatusCode},
-};
+use jwt_authorizer::OneOrArray;
 use oauth2::{
     basic::{BasicClient, BasicRequestTokenError, BasicTokenType},
     http::header::{AUTHORIZATION, USER_AGENT},
     reqwest::{async_http_client, AsyncHttpClientError},
     url::Url,
-    AccessToken, AuthorizationCode, CsrfToken, EmptyExtraTokenFields, PkceCodeChallenge,
-    PkceCodeVerifier, Scope, StandardTokenResponse, TokenResponse, TokenType,
+    AuthorizationCode, CsrfToken, EmptyExtraTokenFields, PkceCodeChallenge, PkceCodeVerifier,
+    Scope, StandardTokenResponse,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{Pool, Postgres};
-use tower::{Layer, Service};
 
-use crate::{
-    api::user,
-    db::{
-        self,
-        user::{UpsertUser, User},
-    },
+use crate::db::{
+    self,
+    user::{UpsertUser, User},
 };
 
 #[derive(Debug, Clone)]
@@ -32,10 +24,30 @@ pub struct AuthService {
     client: BasicClient,
 }
 
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct MicrosoftClaims {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scp: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub iss: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub aud: Option<OneOrArray<String>>,
+    pub preferred_username: String,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Credentials {
     pub code: String,
     pub pkce_code_verifier: PkceCodeVerifier,
+}
+
+impl Clone for Credentials {
+    fn clone(&self) -> Self {
+        Self {
+            code: self.code.clone(),
+            pkce_code_verifier: PkceCodeVerifier::new(self.pkce_code_verifier.secret().clone()),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -52,6 +64,15 @@ pub struct UserInfo {
     pub job_title: Value,
     pub office_location: Value,
     pub business_phones: Vec<Value>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct OnBehalfOfResponse {
+    pub token_type: String,
+    pub scope: String,
+    pub expires_in: i64,
+    pub ext_expires_in: i64,
+    pub access_token: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -83,19 +104,16 @@ impl AuthService {
         self.client
             .authorize_url(CsrfToken::new_random)
             .add_scope(Scope::new("User.Read".to_string()))
-            .add_scope(Scope::new(
-                "api://5e7b7aaf-2267-4f88-bc37-29b4d1ff4d0e/access_as_user".to_string(),
-            ))
+            .add_scope(Scope::new("api://jostrid-api/Jostrid.Access".to_string()))
             .set_pkce_challenge(pkce_code_challenge)
             .url()
     }
 
-    pub async fn acquire_token(
+    pub async fn exchange_code(
         &self,
         creds: Credentials,
         scope: String,
     ) -> Result<JostridTokenResponse, AuthError> {
-        dbg!(&creds);
         // Process authorization code, expecting a token response back.
         let token_res = self
             .client
@@ -109,9 +127,46 @@ impl AuthService {
         Ok(token_res)
     }
 
-    pub async fn authenticate(&self, access_token: &AccessToken) -> Result<User, AuthError> {
+    pub async fn acquire_token(
+        &self,
+        access_token: &str,
+        scope: &str,
+    ) -> Result<OnBehalfOfResponse, AuthError> {
+        let client_secret = env::var("CLIENT_SECRET").unwrap();
+        let params = vec![
+            ("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer"),
+            ("client_id", self.client.client_id()),
+            ("client_secret", client_secret.as_str()),
+            ("assertion", access_token),
+            ("scope", scope),
+            ("requested_token_use", "on_behalf_of"),
+        ];
+
+        let client = reqwest::Client::new();
+        let response = client
+            .post(
+                self.client
+                    .token_url()
+                    .expect("Expected token url")
+                    .url()
+                    .clone(),
+            )
+            .form(&params)
+            .send()
+            .await
+            .map_err(AuthError::Reqwest)?;
+
+        response
+            .json::<OnBehalfOfResponse>()
+            .await
+            .map_err(AuthError::Reqwest)
+    }
+
+    pub async fn authenticate(&self, access_token: &str) -> Result<User, AuthError> {
         let allowed_emails = env::var("ALLOWED_EMAILS").map_err(AuthError::Var)?;
         let mut allowed_emails = allowed_emails.split(",");
+
+        let token = self.acquire_token(access_token, "User.Read").await?;
 
         // Use access token to request user info.
         let user_info = reqwest::Client::new()
@@ -119,7 +174,7 @@ impl AuthService {
             .header(USER_AGENT.as_str(), "axum-login")
             .header(
                 AUTHORIZATION.as_str(),
-                format!("Bearer {}", access_token.secret()),
+                format!("Bearer {}", token.access_token),
             )
             .send()
             .await
@@ -144,22 +199,6 @@ impl AuthService {
         )
         .await
         .map_err(AuthError::Sqlx)?;
-
-        // // Persist user in our database so we can use `get_user`.
-        // let user = sqlx::query_as(
-        //     r#"
-        //     insert into users (username, access_token)
-        //     values (?, ?)
-        //     on conflict(username) do update
-        //     set access_token = excluded.access_token
-        //     returning *
-        //     "#,
-        // )
-        // .bind(user_info.login)
-        // .bind(token_res.access_token().secret())
-        // .fetch_one(&self.db)
-        // .await
-        // .map_err(Self::Error::Sqlx)?;
 
         Ok(user)
     }

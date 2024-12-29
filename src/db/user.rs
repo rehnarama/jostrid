@@ -23,12 +23,21 @@ pub async fn get_users(pool: &PgPool) -> Result<Vec<User>, sqlx::Error> {
     Ok(users)
 }
 
+pub async fn get_user_by_email(pool: &PgPool, email: &str) -> Result<User, sqlx::Error> {
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1;")
+        .bind(email)
+        .fetch_one(pool)
+        .await?;
+
+    Ok(user)
+}
+
 pub async fn upsert_user(pool: &PgPool, user: UpsertUser) -> Result<User, sqlx::Error> {
     let user = sqlx::query_as::<_, User>(
         "
         INSERT INTO users (microsoft_id, name, email) 
         VALUES ($1, $2, $3) 
-        ON CONFLICT DO UPDATE
+        ON CONFLICT (microsoft_id) DO UPDATE
         SET name = EXCLUDED.name, email = EXCLUDED.email
         RETURNING *;
         ",

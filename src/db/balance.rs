@@ -15,5 +15,5 @@ pub struct Balance {
 }
 
 pub async fn get_balance(pool: &PgPool) -> Result<Vec<Balance>, sqlx::Error> {
-    Ok(sqlx::query_as(GET_BALANCE).fetch_all(pool).await?)
+    sqlx::query_as(GET_BALANCE).fetch_all(pool).await
 }

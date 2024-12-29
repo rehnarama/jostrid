@@ -988,6 +988,8 @@ dependencies = [
  "chrono",
  "dotenvy",
  "futures",
+ "hyper 1.4.1",
+ "hyper-util",
  "jwt-authorizer",
  "oauth2",
  "reqwest 0.12.9",

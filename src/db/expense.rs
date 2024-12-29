@@ -15,6 +15,7 @@ SELECT
     e.currency,
     e.is_payment,
     u.name as paid_by_name, 
+    u.email as paid_by_email, 
     e.category_id, 
     ec.name as category_name 
 FROM expense as e
@@ -88,14 +89,14 @@ pub struct ExpenseWithPayerAndCategory {
 }
 
 impl FromRow<'_, PgRow> for ExpenseWithPayerAndCategory {
-    fn from_row<'r>(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
         let expense = Expense::from_row(row)?;
         let paid_by = User {
             id: row.try_get("paid_by")?,
             name: row.try_get("paid_by_name")?,
             email: row.try_get("paid_by_email")?,
         };
-        let category = if let Some(name) = row.try_get("category_name").ok() {
+        let category = if let Ok(name) = row.try_get("category_name") {
             Some(ExpenseCategory {
                 id: row.try_get("category_id")?,
                 name,
@@ -124,7 +125,7 @@ pub async fn get_expenses(
         .enumerate()
         .map(|(i, u)| (u.expense.id, i))
         .collect();
-    let expense_ids: Vec<i32> = expense_id_map.keys().map(|&i| i).collect();
+    let expense_ids: Vec<i32> = expense_id_map.keys().copied().collect();
 
     let shares =
         sqlx::query_as::<_, AccountShare>("SELECT * FROM account_share WHERE expense_id = ANY($1)")

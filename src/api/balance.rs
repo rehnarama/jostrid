@@ -1,8 +1,10 @@
 use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 
-use crate::db::{self, balance::Balance};
+use crate::{
+    db::{self, balance::Balance},
+    server::application::App,
+};
 
 use super::util::internal_error;
 
@@ -23,15 +25,15 @@ impl From<&Balance> for BalanceDto {
     }
 }
 
-pub fn get_balance_api(pool: PgPool) -> Router {
-    Router::new().route("/", get(get_balance)).with_state(pool)
+pub fn get_balance_api() -> Router<App> {
+    Router::new().route("/", get(get_balance))
 }
 
 async fn get_balance(
-    State(pool): State<PgPool>,
+    State(app): State<App>,
 ) -> Result<Json<Vec<BalanceDto>>, (StatusCode, String)> {
     Ok(Json(
-        db::balance::get_balance(&pool)
+        db::balance::get_balance(&app.db)
             .await
             .map(|balance| balance.iter().map(|b| b.into()).collect())
             .map_err(internal_error)?,

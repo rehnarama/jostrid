@@ -1,8 +1,7 @@
 use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
 use serde::Serialize;
-use sqlx::PgPool;
 
-use crate::{api::util::internal_error, db};
+use crate::{api::util::internal_error, db, server::application::App};
 
 #[derive(Serialize)]
 pub struct ExpenseCategoryDto {
@@ -24,16 +23,14 @@ impl From<db::expense_category::ExpenseCategory> for ExpenseCategoryDto {
     }
 }
 
-pub fn get_expense_category_api(pool: PgPool) -> Router {
-    Router::new()
-        .route("/", get(get_expense_categories))
-        .with_state(pool)
+pub fn get_expense_category_api() -> Router<App> {
+    Router::new().route("/", get(get_expense_categories))
 }
 
 async fn get_expense_categories(
-    State(pool): State<PgPool>,
+    State(app): State<App>,
 ) -> Result<Json<Vec<ExpenseCategoryDto>>, (StatusCode, String)> {
-    let categories = db::expense_category::get_expense_categories(&pool)
+    let categories = db::expense_category::get_expense_categories(&app.db)
         .await
         .map_err(internal_error)?;
 

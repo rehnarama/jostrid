@@ -1,10 +1,10 @@
 use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 
 use crate::{
     api::util::internal_error,
     db::{self, user::User},
+    server::application::App,
 };
 
 #[derive(Deserialize, Serialize)]
@@ -24,12 +24,12 @@ impl From<&User> for UserDto {
     }
 }
 
-pub fn get_user_api(pool: PgPool) -> Router {
-    Router::new().route("/", get(get_users)).with_state(pool)
+pub fn get_user_api() -> Router<App> {
+    Router::new().route("/", get(get_users))
 }
 
-async fn get_users(State(pool): State<PgPool>) -> Result<Json<Vec<UserDto>>, (StatusCode, String)> {
-    let users = db::user::get_users(&pool).await.map_err(internal_error)?;
+async fn get_users(State(app): State<App>) -> Result<Json<Vec<UserDto>>, (StatusCode, String)> {
+    let users = db::user::get_users(&app.db).await.map_err(internal_error)?;
 
     let dtos = users.iter().map(|user| user.into()).collect();
 
