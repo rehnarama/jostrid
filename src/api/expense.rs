@@ -22,6 +22,7 @@ use super::{expense_category::ExpenseCategoryDto, user::UserDto};
 pub struct ExpenseDto {
     pub id: i32,
     pub name: String,
+    pub total: i32,
     pub currency: String,
     pub created_at: chrono::DateTime<Utc>,
     pub is_payment: bool,
@@ -32,6 +33,7 @@ impl From<&Expense> for ExpenseDto {
         ExpenseDto {
             id: value.id,
             name: value.name.clone(),
+            total: value.total,
             currency: value.currency.clone(),
             created_at: value.created_at,
             is_payment: value.is_payment,
@@ -61,6 +63,7 @@ struct CreateExpenseDto {
     name: String,
     created_at: Option<chrono::DateTime<Utc>>,
     paid_by: i32,
+    total: i32,
     currency: String,
     category_id: Option<i32>,
     shares: Vec<CreateAccountShareDto>,
@@ -143,6 +146,7 @@ async fn create_expense(
     let to_insert = InsertExpense {
         category_id: expense.category_id,
         created_at: expense.created_at,
+        total: expense.total,
         currency: expense.currency,
         name: expense.name,
         paid_by: expense.paid_by,

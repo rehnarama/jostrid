@@ -2,40 +2,46 @@ import { Expense } from "../hooks/useExpenses";
 import { User } from "../hooks/useUser";
 import { assert } from "./assert";
 
-export const getPaidString = (expense: Expense) => {
-  const total = expense.shares
-    .map((share) => Math.abs(share.share))
-    .reduce((acc, share) => acc + share, 0);
-
+export const formatCurrency = (amount: number, currency: string) => {
   const formatter = new Intl.NumberFormat(navigator.languages, {
     style: "currency",
-    currency: expense.currency,
+    currency: currency,
   });
 
-  return `${expense.paid_by.name} betalade ${formatter.format(total / 100)}`;
+  return formatter.format(amount / 100);
+};
+
+export const getPaidString = (expense: Expense) => {
+  return `${expense.paid_by.name} betalade ${formatCurrency(expense.total, expense.currency)}`;
 };
 
 export const getPaymentString = (expense: Expense, users: User[]) => {
   assert(expense.is_payment, "Should only be used on payment expenses");
 
-  const payerShare = expense.shares.find(
-    (share) => share.user_id === expense.paid_by.id
-  );
-  assert(payerShare, "No payer found");
-  const payerUser = users.find((user) => user.id === payerShare.user_id);
-  assert(payerUser, "No payer user found");
-  const receiverShare = expense.shares.find(
-    (share) => share.user_id !== expense.paid_by.id
-  );
-  assert(receiverShare, "No receiver found");
-
-  const receiverUser = users.find((user) => user.id === receiverShare.user_id);
+  const receiverUser = users.find((user) => user.id !== expense.paid_by.id);
   assert(receiverUser, "No user of the receiver found");
 
-  const formatter = new Intl.NumberFormat(navigator.languages, {
-    style: "currency",
-    currency: expense.currency,
-  });
+  return `${expense.paid_by.name} betalade ${formatCurrency(expense.total, expense.currency)} till ${receiverUser.name}`;
+};
 
-  return `${payerUser.name} betalade ${formatter.format(payerShare.share / 100)} till ${receiverUser.name}`;
+export interface Balances {
+  [currency: string]: {
+    [userId: number]: number;
+  };
+}
+
+export const getBalances = (expenses: Expense[]): Balances => {
+  const balances: Balances = {};
+  for (const expense of expenses) {
+    const currencyBalance = balances[expense.currency] ?? {};
+
+    for (const share of expense.shares) {
+      currencyBalance[share.user_id] =
+        (currencyBalance[share.user_id] ?? 0) + share.share;
+    }
+
+    balances[expense.currency] = currencyBalance;
+  }
+
+  return balances;
 };

@@ -11,14 +11,14 @@ import {
 import { routes } from "./routes";
 import { ToastProvider } from "./hooks/useToast";
 import { TopMenu } from "./components/TopMenu";
-import { NextUIProvider } from "@nextui-org/react";
+import { NextUIProvider, Progress } from "@nextui-org/react";
 import { useEffect, useTransition } from "react";
 import { useAuth } from "./hooks/useAuth";
 
 const Bootstrap = () => {
   const auth = useAuth();
   const location = useLocation();
-  const [, startTransition] = useTransition();
+  const [isTransitioning, startTransition] = useTransition();
   const navigateRaw = useNavigate();
 
   const navigate = (to: To | number, options?: NavigateOptions) => {
@@ -32,16 +32,28 @@ const Bootstrap = () => {
     });
   };
 
+  const needAuthentication = !auth && location.pathname !== "/login";
   useEffect(() => {
-    if (!auth && location.pathname !== "/login") {
-      console.log(auth, location.pathname);
+    if (needAuthentication) {
       navigateRaw("/login");
     }
-  }, [auth, location.pathname, navigateRaw]);
+  }, [needAuthentication, navigateRaw]);
+
+  if (needAuthentication) {
+    return null;
+  }
 
   return (
     <NextUIProvider navigate={navigate} useHref={useHref}>
       <ToastProvider>
+        {isTransitioning && (
+          <Progress
+            className="fixed top-0 left-0 right-0 z-50 fade-in"
+            size="sm"
+            isIndeterminate
+            aria-label="Loading page"
+          />
+        )}
         <TopMenu />
         <Outlet />
       </ToastProvider>

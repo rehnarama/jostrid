@@ -5,6 +5,7 @@ const { VITE_BACKEND_URL } = import.meta.env;
 export const PaidBy = z.object({
   id: z.number(),
   name: z.string(),
+  email: z.string(),
 });
 export type PaidBy = z.infer<typeof PaidBy>;
 
@@ -23,6 +24,7 @@ export const Category = z.object({
 export const Expense = z.object({
   id: z.number(),
   name: z.string(),
+  total: z.number(),
   currency: z.string(),
   created_at: z.string().datetime(),
   paid_by: PaidBy,
@@ -40,6 +42,7 @@ export type CreateExpenseDto = {
   name: string;
   created_at: string;
   paid_by: number;
+  total: number;
   currency: string;
   category_id?: number | undefined;
   shares: CreateAccountShareDto[];

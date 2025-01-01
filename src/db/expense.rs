@@ -12,6 +12,7 @@ SELECT
     e.name, 
     e.created_at, 
     e.paid_by, 
+    e.total,
     e.currency,
     e.is_payment,
     u.name as paid_by_name, 
@@ -30,6 +31,7 @@ SELECT
     e.name, 
     e.created_at, 
     e.paid_by, 
+    e.total,
     e.currency,
     e.is_payment,
     u.name as paid_by_name, 
@@ -43,8 +45,8 @@ WHERE e.id = $1;
 "#;
 
 static INSERT_EXPENSE: &str = r#"
-INSERT INTO expense (name, created_at, paid_by, currency, category_id, is_payment)
-VALUES($1, $2, $3, $4, $5, $6)
+INSERT INTO expense (name, created_at, paid_by, total, currency, category_id, is_payment)
+VALUES($1, $2, $3, $4, $5, $6, $7)
 RETURNING id;
 "#;
 
@@ -58,6 +60,7 @@ pub struct Expense {
     pub id: i32,
     pub name: String,
     pub currency: String,
+    pub total: i32,
     pub created_at: chrono::DateTime<Utc>,
     pub is_payment: bool,
 }
@@ -65,6 +68,7 @@ pub struct InsertExpense {
     pub name: String,
     pub created_at: Option<chrono::DateTime<Utc>>,
     pub paid_by: i32,
+    pub total: i32,
     pub currency: String,
     pub category_id: Option<i32>,
     pub shares: Vec<InsertAccountShare>,
@@ -174,6 +178,7 @@ pub async fn insert_expense(
         .bind(expense.name)
         .bind(expense.created_at.unwrap_or(Utc::now()))
         .bind(expense.paid_by)
+        .bind(expense.total)
         .bind(expense.currency)
         .bind(expense.category_id)
         .bind(expense.is_payment)

@@ -18,6 +18,7 @@ import {
   SelectItem,
   Slider,
 } from "@nextui-org/react";
+import { useMe } from "../hooks/useMe";
 
 const AMOUNT_REGEX = /\d+([.,]\d+)?/;
 const NUMBER_REGEX = /\d+/;
@@ -33,8 +34,9 @@ export const NewExpenseModal = (props: NewExpenseModalProps) => {
   const { create: createExpense } = useExpenses();
   const [currency] = useState("SEK");
   const { data: users } = useUsers();
+  const { data: me } = useMe({ suspense: true });
   const [sharePercentage, setSharePercentage] = useState<number[]>(
-    users.map(() => 1 / users.length)
+    users.map(() => 100 / users.length)
   );
 
   const [isCreating, setIsCreating] = useState(false);
@@ -57,11 +59,14 @@ export const NewExpenseModal = (props: NewExpenseModalProps) => {
       currency,
       name,
       paid_by: Number(paidBy),
+      total: Number(total) * 100,
       category_id: category ? Number(category) : undefined,
       shares: users.map((user, i) => {
         return {
           user_id: user.id,
-          share: Math.round(Number(total) * sharePercentage[i]), // We actually have `* 100 / 100` here to go from [0, 100] -> [0, 1] and then to cents from full amount
+          share:
+            (user.id === Number(paidBy) ? -Number(total) * 100 : 0) +
+            Math.round(Number(total) * sharePercentage[i]), // We actually have `* 100 / 100` here to go from [0, 100] -> [0, 1] and then to cents from full amount
         };
       }),
       is_payment: false,
@@ -94,7 +99,12 @@ export const NewExpenseModal = (props: NewExpenseModalProps) => {
               isRequired
             />
 
-            <RadioGroup label="Betalare" name="paidBy" isRequired>
+            <RadioGroup
+              label="Betalare"
+              name="paidBy"
+              isRequired
+              defaultValue={String(me.id)}
+            >
               {users.map((user) => (
                 <Radio key={user.id} value={String(user.id)}>
                   {user.name}

@@ -1,14 +1,14 @@
 import classNames from "classnames";
 import { Expense } from "../hooks/useExpenses";
+import { useMe } from "../hooks/useMe";
 
 export interface ExpenseAmountProps {
   expense: Expense;
 }
 
-const USER_ID = 1;
-
 export const ExpenseAmount = ({ expense }: ExpenseAmountProps) => {
-  const myShare = expense.shares.find((share) => share.user_id === USER_ID);
+  const me = useMe({ suspense: true }).data;
+  const myShare = expense.shares.find((share) => share.user_id === me.id);
 
   const formatter = new Intl.NumberFormat(navigator.languages, {
     style: "currency",
