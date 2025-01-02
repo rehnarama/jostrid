@@ -59,19 +59,20 @@ impl From<&AccountShare> for AccountShareDto {
 }
 
 #[derive(Serialize, Deserialize)]
-struct CreateExpenseDto {
+struct UpsertExpenseDto {
+    id: Option<i32>,
     name: String,
     created_at: Option<chrono::DateTime<Utc>>,
     paid_by: i32,
     total: i32,
     currency: String,
     category_id: Option<i32>,
-    shares: Vec<CreateAccountShareDto>,
+    shares: Vec<UpsertAccountShareDto>,
     is_payment: bool,
 }
 
 #[derive(Serialize, Deserialize)]
-struct CreateAccountShareDto {
+struct UpsertAccountShareDto {
     user_id: i32,
     share: i32,
 }
@@ -90,8 +91,7 @@ pub fn get_expense_api() -> Router<App> {
         .route(
             "/",
             get(get_expenses)
-                .patch(update_expense)
-                .post(create_expense)
+                .put(upsert_expense)
                 .delete(delete_expense),
         )
         .route("/:id", get(get_expense))
@@ -135,13 +135,9 @@ async fn get_expense(
     Ok(Json(expense))
 }
 
-async fn update_expense() -> Json<ExpenseWithEverythingDto> {
-    todo!()
-}
-
-async fn create_expense(
+async fn upsert_expense(
     State(app): State<App>,
-    Json(expense): Json<CreateExpenseDto>,
+    Json(expense): Json<UpsertExpenseDto>,
 ) -> Result<Json<ExpenseWithEverythingDto>, (StatusCode, String)> {
     let to_insert = InsertExpense {
         category_id: expense.category_id,
@@ -161,9 +157,12 @@ async fn create_expense(
             .collect(),
     };
 
-    let new_expense = db::expense::insert_expense(to_insert, &app.db)
-        .await
-        .map_err(internal_error)?;
+    let new_expense = match expense.id {
+        Some(expense_id) => db::expense::update_expense(expense_id, to_insert, &app.db).await,
+        None => db::expense::insert_expense(to_insert, &app.db).await,
+    }
+    .map_err(internal_error)?;
+
     Ok(Json(ExpenseWithEverythingDto {
         expense: (&new_expense.0.expense).into(),
         category: new_expense

@@ -72,7 +72,7 @@ export const SettleUpModal = (props: SettleUpModalProps) => {
     assert(receiver, "Can't find receiver");
     setIsSettlingUp(true);
     try {
-      await expenses.create({
+      await expenses.upsert({
         currency,
         total,
         is_payment: true,

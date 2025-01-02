@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use chrono::Utc;
 use serde::Serialize;
-use sqlx::{postgres::PgRow, FromRow, PgPool, Row};
+use sqlx::{
+    postgres::{self, PgRow},
+    FromRow, PgPool, Row,
+};
 
 use super::{expense_category::ExpenseCategory, user::User};
 
@@ -50,9 +53,24 @@ VALUES($1, $2, $3, $4, $5, $6, $7)
 RETURNING id;
 "#;
 
-static INSERT_SHARE: &str = r#"
+static UPDATE_EXPENSE: &str = r#"
+UPDATE expense
+SET
+    name = $2, 
+    created_at = $3,
+    paid_by = $4,
+    total = $5,
+    currency = $6,
+    category_id = $7,
+    is_payment = $8
+WHERE id = $1;
+"#;
+
+static UPSERT_SHARE: &str = r#"
 INSERT INTO account_share (expense_id, user_id, share)
-VALUES($1, $2, $3);
+VALUES($1, $2, $3)
+ON CONFLICT (expense_id, user_id) DO UPDATE 
+SET share = EXCLUDED.share;
 "#;
 
 #[derive(sqlx::FromRow, Serialize, Clone)]
@@ -173,7 +191,6 @@ pub async fn insert_expense(
     expense: InsertExpense,
     pool: &PgPool,
 ) -> Result<(ExpenseWithPayerAndCategory, Vec<AccountShare>), sqlx::Error> {
-    dbg!(expense.category_id);
     let expense_id: i32 = sqlx::query(INSERT_EXPENSE)
         .bind(expense.name)
         .bind(expense.created_at.unwrap_or(Utc::now()))
@@ -187,7 +204,7 @@ pub async fn insert_expense(
         .await?;
 
     for share in expense.shares {
-        sqlx::query(INSERT_SHARE)
+        sqlx::query(UPSERT_SHARE)
             .bind(expense_id)
             .bind(share.user_id)
             .bind(share.share)
@@ -198,4 +215,35 @@ pub async fn insert_expense(
     Ok(get_expense(expense_id, pool)
         .await?
         .expect("Failed to fetch after insert"))
+}
+
+pub async fn update_expense(
+    expense_id: i32,
+    expense: InsertExpense,
+    pool: &PgPool,
+) -> Result<(ExpenseWithPayerAndCategory, Vec<AccountShare>), sqlx::Error> {
+    sqlx::query(UPDATE_EXPENSE)
+        .bind(expense_id)
+        .bind(expense.name)
+        .bind(expense.created_at.unwrap_or(Utc::now()))
+        .bind(expense.paid_by)
+        .bind(expense.total)
+        .bind(expense.currency)
+        .bind(expense.category_id)
+        .bind(expense.is_payment)
+        .execute(pool)
+        .await?;
+
+    for share in expense.shares {
+        sqlx::query(UPSERT_SHARE)
+            .bind(expense_id)
+            .bind(share.user_id)
+            .bind(share.share)
+            .execute(pool)
+            .await?;
+    }
+
+    Ok(get_expense(expense_id, pool)
+        .await?
+        .expect("Failed to fetch after upsert"))
 }

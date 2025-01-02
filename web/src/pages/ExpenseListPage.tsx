@@ -3,7 +3,7 @@ import { IconMoneybag, IconPlus } from "@tabler/icons-react";
 import groupBy from "lodash-es/groupBy";
 
 import classes from "./ExpenseListPage.module.css";
-import { useExpenses } from "../hooks/useExpenses";
+import { Expense, useExpenses } from "../hooks/useExpenses";
 import { NewExpenseModal } from "../components/NewExpenseModal";
 import { ExpenseAmount } from "../components/ExpenseAmount";
 import {
@@ -29,7 +29,7 @@ const PAGE_SIZE = 100;
 
 export const ExpenseListPage = () => {
   const [limit, setLimit] = useState(PAGE_SIZE);
-  const [newModalOpen, setNewModalOpen] = useState(false);
+  const [newModalOpen, setNewModalOpen] = useState<boolean | Expense>(false);
   const [settleUpModalOpen, setSettleUpModalOpen] = useState(false);
   const { data: expenses } = useExpenses({ suspense: true });
   const { data: users } = useUsers();
@@ -134,7 +134,7 @@ export const ExpenseListPage = () => {
                         <ExpenseAmount expense={expense} />
                       ) : undefined
                     }
-                    href={`/expense/${expense.id}`}
+                    onPress={() => setNewModalOpen(expense)}
                   >
                     {expense.is_payment
                       ? getPaymentString(expense, users)
@@ -158,7 +158,8 @@ export const ExpenseListPage = () => {
         </div>
       )}
       <NewExpenseModal
-        open={newModalOpen}
+        open={newModalOpen !== false}
+        expense={typeof newModalOpen === "object" ? newModalOpen : undefined}
         onClose={() => setNewModalOpen(false)}
       />
       <SettleUpModal

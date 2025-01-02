@@ -2,7 +2,7 @@ import { useExpenseCategory } from "../hooks/useExpenseCategory";
 import { FormEvent, useState } from "react";
 import { useUsers } from "../hooks/useUser";
 import { assert } from "../utils/assert";
-import { CreateExpenseDto, useExpenses } from "../hooks/useExpenses";
+import { Expense, UpsertExpenseDto, useExpenses } from "../hooks/useExpenses";
 import { useToast } from "../hooks/useToast";
 import {
   Button,
@@ -19,27 +19,38 @@ import {
   Slider,
 } from "@nextui-org/react";
 import { useMe } from "../hooks/useMe";
+import { errorLikeToMessage } from "../lib/utils";
 
 const AMOUNT_REGEX = /\d+([.,]\d+)?/;
 const NUMBER_REGEX = /\d+/;
 
 export interface NewExpenseModalProps {
+  expense?: Expense;
   open?: boolean;
   onClose?: () => void;
 }
 
 export const NewExpenseModal = (props: NewExpenseModalProps) => {
+  const expense = props.expense;
   const toast = useToast();
   const categories = useExpenseCategory();
-  const { create: createExpense } = useExpenses();
+  const { upsert: upsertExpense } = useExpenses();
   const [currency] = useState("SEK");
   const { data: users } = useUsers();
   const { data: me } = useMe({ suspense: true });
   const [sharePercentage, setSharePercentage] = useState<number[]>(
-    users.map(() => 100 / users.length)
+    expense
+      ? expense.shares.map((share) =>
+          Math.round((100 * Math.abs(share.share)) / expense.total)
+        )
+      : users.map(() => 100 / users.length)
   );
 
   const [isCreating, setIsCreating] = useState(false);
+
+  const deleteExpense = () => {
+    assert(expense, "No expense found");
+  };
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -54,7 +65,8 @@ export const NewExpenseModal = (props: NewExpenseModalProps) => {
     assert(AMOUNT_REGEX.test(total));
     assert(NUMBER_REGEX.test(paidBy));
 
-    const createExpenseDto: CreateExpenseDto = {
+    const createExpenseDto: UpsertExpenseDto = {
+      id: expense?.id,
       created_at: new Date().toISOString(),
       currency,
       name,
@@ -74,10 +86,10 @@ export const NewExpenseModal = (props: NewExpenseModalProps) => {
 
     try {
       setIsCreating(true);
-      await createExpense(createExpenseDto);
+      await upsertExpense(createExpenseDto);
       props.onClose?.();
     } catch (e) {
-      toast.show("Failed to create expense", "danger");
+      toast.show("Failed to create expense", errorLikeToMessage(e), "danger");
     } finally {
       setIsCreating(false);
     }
@@ -89,7 +101,12 @@ export const NewExpenseModal = (props: NewExpenseModalProps) => {
         <ModalHeader>Ny utgift</ModalHeader>
         <ModalBody>
           <Form validationBehavior="native" onSubmit={onSubmit}>
-            <Input label="Utgiftnamn" name="name" isRequired />
+            <Input
+              label="Utgiftnamn"
+              name="name"
+              isRequired
+              defaultValue={expense?.name}
+            />
 
             <Input
               label="Totalt"
@@ -97,13 +114,16 @@ export const NewExpenseModal = (props: NewExpenseModalProps) => {
               type="number"
               endContent={currency}
               isRequired
+              defaultValue={expense ? String(expense.total / 100) : undefined}
             />
 
             <RadioGroup
               label="Betalare"
               name="paidBy"
               isRequired
-              defaultValue={String(me.id)}
+              defaultValue={
+                expense ? String(expense.paid_by.id) : String(me.id)
+              }
             >
               {users.map((user) => (
                 <Radio key={user.id} value={String(user.id)}>
@@ -152,23 +172,40 @@ export const NewExpenseModal = (props: NewExpenseModalProps) => {
               })}
             />
 
-            <Select label="Kategori" name="category">
-              {categories.data.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
+            <Select
+              label="Kategori"
+              name="category"
+              defaultSelectedKeys={
+                expense?.category ? [String(expense.category)] : undefined
+              }
+              items={categories.data}
+            >
+              {(category) => (
+                <SelectItem key={category.id}>{category.name}</SelectItem>
+              )}
             </Select>
 
-            <Button
-              className="self-stretch"
-              type="submit"
-              disabled={isCreating}
-              isLoading={isCreating}
-              color="primary"
-            >
-              Skapa
-            </Button>
+            <div className="self-stretch flex flex-row gap-1">
+              <Button
+                className="flex-1"
+                type="submit"
+                disabled={isCreating}
+                isLoading={isCreating}
+                color="primary"
+              >
+                {expense ? "Spara" : "Skapa"}
+              </Button>
+              {expense && (
+                <Button
+                  className="flex-1"
+                  color="danger"
+                  variant="bordered"
+                  onPress={deleteExpense}
+                >
+                  Ta bort
+                </Button>
+              )}
+            </div>
           </Form>
         </ModalBody>
       </ModalContent>

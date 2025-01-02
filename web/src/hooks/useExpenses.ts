@@ -35,23 +35,24 @@ export const Expense = z.object({
 });
 export type Expense = z.infer<typeof Expense>;
 
-export const CreateAccountShareDto = z.object({
+export const UpsertAccountShareDto = z.object({
   user_id: z.number(),
   share: z.number(),
 });
-export type CreateAccountShareDto = z.infer<typeof CreateAccountShareDto>;
+export type UpsertAccountShareDto = z.infer<typeof UpsertAccountShareDto>;
 
-export const CreateExpenseDto = z.object({
+export const UpsertExpenseDto = z.object({
+  id: z.number().optional(),
   name: z.string(),
   created_at: z.string().optional(),
   paid_by: z.number(),
   total: z.number(),
   currency: z.string(),
   category_id: z.number().optional(),
-  shares: z.array(CreateAccountShareDto),
+  shares: z.array(UpsertAccountShareDto),
   is_payment: z.boolean(),
 });
-export type CreateExpenseDto = z.infer<typeof CreateExpenseDto>;
+export type UpsertExpenseDto = z.infer<typeof UpsertExpenseDto>;
 
 export const useExpenses = <C extends SWRConfiguration>(config?: C) => {
   const result = useData(
@@ -60,23 +61,33 @@ export const useExpenses = <C extends SWRConfiguration>(config?: C) => {
     config ?? { suspense: true }
   );
 
-  const create = async (createExpenseDto: CreateExpenseDto) => {
+  const upsert = async (upsertExpenseDto: UpsertExpenseDto) => {
     const response = await fetch(`${VITE_BACKEND_URL}/api/expense`, {
       mode: "cors",
-      method: "POST",
-      body: JSON.stringify(createExpenseDto),
+      method: "PUT",
+      body: JSON.stringify(upsertExpenseDto),
       headers: {
         "Content-Type": "application/json",
       },
     });
-    const newExpense = Expense.parse(await response.json());
+    const upsertedExpense = Expense.parse(await response.json());
 
     result.mutate((current = []) => {
-      return [newExpense, ...current];
+      if (upsertExpenseDto.id) {
+        const oldExpenseIndex = current.findIndex(
+          (expense) => expense.id === upsertExpenseDto.id
+        );
+        return [
+          ...current.slice(0, oldExpenseIndex),
+          upsertedExpense,
+          ...current.slice(oldExpenseIndex + 1),
+        ];
+      }
+      return [upsertedExpense, ...current];
     });
   };
 
-  return { ...result, create };
+  return { ...result, upsert };
 };
 
 export const useExpense = (id: number | string) => {
