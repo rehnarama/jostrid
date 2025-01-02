@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { IconPlus } from "@tabler/icons-react";
+import { IconMoneybag, IconPlus } from "@tabler/icons-react";
 import groupBy from "lodash-es/groupBy";
 
 import classes from "./ExpenseListPage.module.css";
@@ -31,7 +31,7 @@ export const ExpenseListPage = () => {
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [settleUpModalOpen, setSettleUpModalOpen] = useState(false);
-  const { data: expenses } = useExpenses();
+  const { data: expenses } = useExpenses({ suspense: true });
   const { data: users } = useUsers();
   const me = useMe({ suspense: true }).data;
 
@@ -66,7 +66,7 @@ export const ExpenseListPage = () => {
             .map(([currency, myTotal]) => {
               return (
                 <p key={currency}>
-                  {myTotal < 0 ? (
+                  {myTotal > 0 ? (
                     <>
                       Du ska få tillbaka{" "}
                       <span className="text-success">
@@ -75,9 +75,9 @@ export const ExpenseListPage = () => {
                     </>
                   ) : (
                     <>
-                      Du ska betala{" "}
+                      Du är skyldig{" "}
                       <span className="text-danger">
-                        {formatCurrency(myTotal, currency)}
+                        {formatCurrency(Math.abs(myTotal), currency)}
                       </span>
                     </>
                   )}
@@ -114,21 +114,31 @@ export const ExpenseListPage = () => {
                   <ListboxItem
                     key={expense.id}
                     description={
-                      expense.is_payment
-                        ? getPaymentString(expense, users)
-                        : getPaidString(expense)
+                      !expense.is_payment ? getPaidString(expense) : undefined
                     }
                     startContent={
-                      <Avatar
-                        size="sm"
-                        name={expense.category?.name ?? "Okänd"}
-                        className="flex-shrink-0"
-                      />
+                      expense.is_payment ? (
+                        <div className="w-8 h-8 flex items-center justify-center">
+                          <IconMoneybag />
+                        </div>
+                      ) : (
+                        <Avatar
+                          size="sm"
+                          name={expense.category?.name ?? "Okänd"}
+                          className="flex-shrink-0"
+                        />
+                      )
                     }
-                    endContent={<ExpenseAmount expense={expense} />}
+                    endContent={
+                      !expense.is_payment ? (
+                        <ExpenseAmount expense={expense} />
+                      ) : undefined
+                    }
                     href={`/expense/${expense.id}`}
                   >
-                    {expense.name}
+                    {expense.is_payment
+                      ? getPaymentString(expense, users)
+                      : expense.name}
                   </ListboxItem>
                 );
               })}

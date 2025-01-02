@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { useData } from "./useData";
+import { SWRConfiguration } from "swr";
 const { VITE_BACKEND_URL } = import.meta.env;
 
 export const PaidBy = z.object({
@@ -34,23 +35,30 @@ export const Expense = z.object({
 });
 export type Expense = z.infer<typeof Expense>;
 
-export type CreateAccountShareDto = {
-  user_id: number;
-  share: number;
-};
-export type CreateExpenseDto = {
-  name: string;
-  created_at: string;
-  paid_by: number;
-  total: number;
-  currency: string;
-  category_id?: number | undefined;
-  shares: CreateAccountShareDto[];
-  is_payment: boolean;
-};
+export const CreateAccountShareDto = z.object({
+  user_id: z.number(),
+  share: z.number(),
+});
+export type CreateAccountShareDto = z.infer<typeof CreateAccountShareDto>;
 
-export const useExpenses = () => {
-  const result = useData("/api/expense", Expense.array(), { suspense: true });
+export const CreateExpenseDto = z.object({
+  name: z.string(),
+  created_at: z.string().optional(),
+  paid_by: z.number(),
+  total: z.number(),
+  currency: z.string(),
+  category_id: z.number().optional(),
+  shares: z.array(CreateAccountShareDto),
+  is_payment: z.boolean(),
+});
+export type CreateExpenseDto = z.infer<typeof CreateExpenseDto>;
+
+export const useExpenses = <C extends SWRConfiguration>(config?: C) => {
+  const result = useData(
+    "/api/expense",
+    Expense.array(),
+    config ?? { suspense: true }
+  );
 
   const create = async (createExpenseDto: CreateExpenseDto) => {
     const response = await fetch(`${VITE_BACKEND_URL}/api/expense`, {

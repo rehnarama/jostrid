@@ -65,8 +65,8 @@ export const NewExpenseModal = (props: NewExpenseModalProps) => {
         return {
           user_id: user.id,
           share:
-            (user.id === Number(paidBy) ? -Number(total) * 100 : 0) +
-            Math.round(Number(total) * sharePercentage[i]), // We actually have `* 100 / 100` here to go from [0, 100] -> [0, 1] and then to cents from full amount
+            (user.id === Number(paidBy) ? Number(total) * 100 : 0) +
+            -Math.round(Number(total) * sharePercentage[i]), // We actually have `* 100 / 100` here to go from [0, 100] -> [0, 1] and then to cents from full amount
         };
       }),
       is_payment: false,
