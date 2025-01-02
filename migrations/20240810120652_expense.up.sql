@@ -64,7 +64,7 @@ CREATE TABLE
 CREATE TABLE
     account_share (
         user_id INTEGER NOT NULL REFERENCES users (id),
-        expense_id INTEGER NOT NULL REFERENCES expense (id),
+        expense_id INTEGER NOT NULL REFERENCES expense (id) ON DELETE CASCADE,
         share INTEGER NOT NULL,
         PRIMARY KEY (user_id, expense_id)
     );

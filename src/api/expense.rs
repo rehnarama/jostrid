@@ -1,6 +1,7 @@
 use axum::{
     extract::{Path, State},
     http::StatusCode,
+    response::IntoResponse,
     routing::get,
     Json, Router,
 };
@@ -88,13 +89,8 @@ pub struct ExpenseWithEverythingDto {
 
 pub fn get_expense_api() -> Router<App> {
     Router::new()
-        .route(
-            "/",
-            get(get_expenses)
-                .put(upsert_expense)
-                .delete(delete_expense),
-        )
-        .route("/:id", get(get_expense))
+        .route("/", get(get_expenses).put(upsert_expense))
+        .route("/:id", get(get_expense).delete(delete_expense))
 }
 
 async fn get_expenses(
@@ -175,6 +171,11 @@ async fn upsert_expense(
     }))
 }
 
-async fn delete_expense() {
-    todo!()
+async fn delete_expense(
+    Path(id): Path<i32>,
+    State(app): State<App>,
+) -> Result<(), impl IntoResponse> {
+    db::expense::delete_expense(id, &app.db)
+        .await
+        .map_err(internal_error)
 }

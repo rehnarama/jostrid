@@ -34,7 +34,7 @@ export const NewExpenseModal = (props: NewExpenseModalProps) => {
   const expense = props.expense;
   const toast = useToast();
   const categories = useExpenseCategory();
-  const { upsert: upsertExpense } = useExpenses();
+  const { upsert: upsertExpense, remove: removeExpense } = useExpenses();
   const [currency] = useState("SEK");
   const { data: users } = useUsers();
   const { data: me } = useMe({ suspense: true });
@@ -50,6 +50,9 @@ export const NewExpenseModal = (props: NewExpenseModalProps) => {
 
   const deleteExpense = () => {
     assert(expense, "No expense found");
+
+    removeExpense(expense.id);
+    props.onClose?.();
   };
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -98,115 +101,126 @@ export const NewExpenseModal = (props: NewExpenseModalProps) => {
   return (
     <Modal isOpen={props.open ?? false} onClose={props.onClose}>
       <ModalContent>
-        <ModalHeader>Ny utgift</ModalHeader>
+        <ModalHeader>{expense ? "Uppdatera Utgift" : "Ny utgift"}</ModalHeader>
         <ModalBody>
-          <Form validationBehavior="native" onSubmit={onSubmit}>
-            <Input
-              label="Utgiftnamn"
-              name="name"
-              isRequired
-              defaultValue={expense?.name}
-            />
-
-            <Input
-              label="Totalt"
-              name="total"
-              type="number"
-              endContent={currency}
-              isRequired
-              defaultValue={expense ? String(expense.total / 100) : undefined}
-            />
-
-            <RadioGroup
-              label="Betalare"
-              name="paidBy"
-              isRequired
-              defaultValue={
-                expense ? String(expense.paid_by.id) : String(me.id)
-              }
+          {expense?.is_payment ? (
+            <Button
+              className="flex-1"
+              color="danger"
+              variant="bordered"
+              onPress={deleteExpense}
             >
-              {users.map((user) => (
-                <Radio key={user.id} value={String(user.id)}>
-                  {user.name}
-                </Radio>
-              ))}
-            </RadioGroup>
+              Ta bort
+            </Button>
+          ) : (
+            <Form validationBehavior="native" onSubmit={onSubmit}>
+              <Input
+                label="Utgiftnamn"
+                name="name"
+                isRequired
+                defaultValue={expense?.name}
+              />
 
-            <Slider
-              label="Andel"
-              name="share"
-              minValue={0}
-              maxValue={100}
-              step={1}
-              value={sharePercentage.slice(0, -1).map((percentage, i) => {
-                const prevSum = sharePercentage
-                  .slice(0, i)
-                  .reduce((a, b) => a + b, 0);
+              <Input
+                label="Totalt"
+                name="total"
+                type="number"
+                endContent={currency}
+                isRequired
+                defaultValue={expense ? String(expense.total / 100) : undefined}
+              />
 
-                return prevSum + percentage;
-              })}
-              onChange={(values) => {
-                assert(Array.isArray(values));
-
-                let prev = 0;
-                const shares: number[] = [];
-                for (const value of values) {
-                  shares.push(value - prev);
-                  prev = value;
+              <RadioGroup
+                label="Betalare"
+                name="paidBy"
+                isRequired
+                defaultValue={
+                  expense ? String(expense.paid_by.id) : String(me.id)
                 }
-                shares.push(100 - prev);
-                setSharePercentage(shares);
-              }}
-              marks={users.map((user, i) => {
-                const previous = sharePercentage
-                  .slice(0, i)
-                  .reduce((share, sum) => share + sum, 0);
-                const next = sharePercentage
-                  .slice(0, i + 1)
-                  .reduce((share, sum) => share + sum, 0);
-
-                return {
-                  value: (previous + next) / 2,
-                  label: `${user.name.slice(0, 1)}\u00A0(${sharePercentage[i]}%) `,
-                };
-              })}
-            />
-
-            <Select
-              label="Kategori"
-              name="category"
-              defaultSelectedKeys={
-                expense?.category ? [String(expense.category)] : undefined
-              }
-              items={categories.data}
-            >
-              {(category) => (
-                <SelectItem key={category.id}>{category.name}</SelectItem>
-              )}
-            </Select>
-
-            <div className="self-stretch flex flex-row gap-1">
-              <Button
-                className="flex-1"
-                type="submit"
-                disabled={isCreating}
-                isLoading={isCreating}
-                color="primary"
               >
-                {expense ? "Spara" : "Skapa"}
-              </Button>
-              {expense && (
+                {users.map((user) => (
+                  <Radio key={user.id} value={String(user.id)}>
+                    {user.name}
+                  </Radio>
+                ))}
+              </RadioGroup>
+
+              <Slider
+                label="Andel"
+                name="share"
+                minValue={0}
+                maxValue={100}
+                step={1}
+                value={sharePercentage.slice(0, -1).map((percentage, i) => {
+                  const prevSum = sharePercentage
+                    .slice(0, i)
+                    .reduce((a, b) => a + b, 0);
+
+                  return prevSum + percentage;
+                })}
+                onChange={(values) => {
+                  assert(Array.isArray(values));
+
+                  let prev = 0;
+                  const shares: number[] = [];
+                  for (const value of values) {
+                    shares.push(value - prev);
+                    prev = value;
+                  }
+                  shares.push(100 - prev);
+                  setSharePercentage(shares);
+                }}
+                marks={users.map((user, i) => {
+                  const previous = sharePercentage
+                    .slice(0, i)
+                    .reduce((share, sum) => share + sum, 0);
+                  const next = sharePercentage
+                    .slice(0, i + 1)
+                    .reduce((share, sum) => share + sum, 0);
+
+                  return {
+                    value: (previous + next) / 2,
+                    label: `${user.name.slice(0, 1)}\u00A0(${sharePercentage[i]}%) `,
+                  };
+                })}
+              />
+
+              <Select
+                label="Kategori"
+                name="category"
+                defaultSelectedKeys={
+                  expense?.category ? [String(expense.category)] : undefined
+                }
+                items={categories.data}
+              >
+                {(category) => (
+                  <SelectItem key={category.id}>{category.name}</SelectItem>
+                )}
+              </Select>
+
+              <div className="self-stretch flex flex-row gap-1">
                 <Button
                   className="flex-1"
-                  color="danger"
-                  variant="bordered"
-                  onPress={deleteExpense}
+                  type="submit"
+                  disabled={isCreating}
+                  isLoading={isCreating}
+                  color="primary"
                 >
-                  Ta bort
+                  {expense ? "Spara" : "Skapa"}
                 </Button>
-              )}
-            </div>
-          </Form>
+                {expense && (
+                  <Button
+                    className="flex-1"
+                    color="danger"
+                    variant="bordered"
+                    onPress={deleteExpense}
+                  >
+                    Ta bort
+                  </Button>
+                )}
+              </div>
+            </Form>
+          )}
         </ModalBody>
       </ModalContent>
     </Modal>

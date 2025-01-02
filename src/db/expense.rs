@@ -66,6 +66,11 @@ SET
 WHERE id = $1;
 "#;
 
+static DELETE_EXPENSE: &str = r#"
+DELETE FROM expense
+WHERE id = $1;
+"#;
+
 static UPSERT_SHARE: &str = r#"
 INSERT INTO account_share (expense_id, user_id, share)
 VALUES($1, $2, $3)
@@ -246,4 +251,13 @@ pub async fn update_expense(
     Ok(get_expense(expense_id, pool)
         .await?
         .expect("Failed to fetch after upsert"))
+}
+
+pub async fn delete_expense(expense_id: i32, pool: &PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query(DELETE_EXPENSE)
+        .bind(expense_id)
+        .execute(pool)
+        .await?;
+
+    Ok(())
 }

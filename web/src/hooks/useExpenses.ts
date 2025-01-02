@@ -87,7 +87,21 @@ export const useExpenses = <C extends SWRConfiguration>(config?: C) => {
     });
   };
 
-  return { ...result, upsert };
+  const remove = async (expenseId: number) => {
+    await fetch(`${VITE_BACKEND_URL}/api/expense/${expenseId}`, {
+      mode: "cors",
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    result.mutate((current = []) => {
+      return current.filter((expense) => expense.id !== expenseId);
+    });
+  };
+
+  return { ...result, upsert, remove };
 };
 
 export const useExpense = (id: number | string) => {
