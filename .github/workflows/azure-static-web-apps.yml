@@ -1,0 +1,54 @@
+name: Azure Static Web Apps CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_and_deploy_job:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    name: Build and Deploy Job
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20" # Adjust the Node.js version as needed
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          cd web
+          npm install
+
+      # Build the project
+      - name: Build project
+        run: |
+          cd web
+          npm run build
+
+      - name: Deploy project
+        run: |
+          cd web
+          npx swa deploy -e Production
+        env:
+          # See https://azure.github.io/static-web-apps-cli/docs/use/deploy#51-deployment-token
+          SWA_CLI_DEPLOYMENT_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APP_DEPLOYMENT_TOKEN }}
+
+      # Optionally cache Node.js modules
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        with:
+          path: web/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/web/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
