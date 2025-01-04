@@ -13,11 +13,11 @@ use tower_sessions::{cookie::SameSite, Expiry, MemoryStore, SessionManagerLayer}
 
 use crate::{
     api::{
+        auth::{self, ACCESS_TOKEN_KEY},
         balance::get_balance_api,
         expense::get_expense_api,
         expense_category::get_expense_category_api,
         me::get_me_api,
-        auth::{self, ACCESS_TOKEN_KEY},
         user::get_user_api,
     },
     service::auth_service::MicrosoftClaims,
@@ -31,7 +31,7 @@ pub struct App {
 
 impl App {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let db_url = std::env::var("DATABASE_URL").unwrap();
+        let db_url = std::env::var("POSTGRES_URL").unwrap();
 
         // set up connection pool
         let db = PgPoolOptions::new()

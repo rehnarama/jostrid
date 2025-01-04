@@ -2,10 +2,7 @@ use std::collections::HashMap;
 
 use chrono::Utc;
 use serde::Serialize;
-use sqlx::{
-    postgres::{self, PgRow},
-    FromRow, PgPool, Row,
-};
+use sqlx::{postgres::PgRow, FromRow, PgPool, Row};
 
 use super::{expense_category::ExpenseCategory, user::User};
 
