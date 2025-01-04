@@ -1,4 +1,8 @@
-use axum::{routing::get, Router};
+use axum::{
+    http::{self, HeaderValue},
+    routing::get,
+    Router,
+};
 use jwt_authorizer::{layer::JwtSource, Authorizer, IntoLayer, JwtAuthorizer, Validation};
 use oauth2::{basic::BasicClient, AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
 use sqlx::{
@@ -9,6 +13,7 @@ use sqlx::{
 use std::env;
 use time::Duration;
 use tower_cookies::CookieManagerLayer;
+use tower_http::cors::{Any, CorsLayer};
 use tower_sessions::{cookie::SameSite, Expiry, MemoryStore, SessionManagerLayer};
 
 use crate::{
@@ -89,19 +94,25 @@ impl App {
         .await
         .expect("Couldn't load oidc url");
 
+        let cors_layer = CorsLayer::new()
+            .allow_origin("https://jostrid.se".parse::<HeaderValue>().unwrap())
+            .allow_headers([http::header::CONTENT_TYPE])
+            .allow_methods(Any);
+
         // build our application with a route
         let app = Router::new()
-            .route("/api", get(hello_world))
             .nest("/api/balance", get_balance_api())
             .nest("/api/expense", get_expense_api())
             .nest("/api/expense_category", get_expense_category_api())
             .nest("/api/user", get_user_api())
             .nest("/api/me", get_me_api())
             .layer(jwt_auth.into_layer())
+            .route("/api", get(hello_world))
             .nest("/", auth::router())
             .with_state(self)
             .layer(session_layer)
-            .layer(CookieManagerLayer::new());
+            .layer(CookieManagerLayer::new())
+            .layer(cors_layer);
 
         // run our app with hyper, listening globally on port 3000
         let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
