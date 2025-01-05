@@ -1,5 +1,5 @@
 use axum::{
-    http::{self, HeaderValue},
+    http::{self},
     routing::get,
     Router,
 };
@@ -18,7 +18,7 @@ use tower_sessions::{cookie::SameSite, Expiry, MemoryStore, SessionManagerLayer}
 
 use crate::{
     api::{
-        auth::{self, ACCESS_TOKEN_KEY},
+        auth::{self},
         balance::get_balance_api,
         expense::get_expense_api,
         expense_category::get_expense_category_api,
@@ -65,7 +65,7 @@ impl App {
             BasicClient::new(client_id, Some(client_secret), auth_url, Some(token_url))
                 .set_redirect_uri(
                     RedirectUrl::new(
-                        env::var(REDIRECT_URL)
+                        env::var("REDIRECT_URL")
                             .unwrap_or("http://localhost:5173/oauth/callback".to_string()),
                     )
                     .unwrap(),
