@@ -1,7 +1,10 @@
 import { Button } from "@nextui-org/react";
 import { IconBrandWindows } from "@tabler/icons-react";
+import { useAuth } from "../hooks/useAuth";
 
 export const LoginPage = () => {
+  const { login } = useAuth();
+
   return (
     <div className="flex h-full w-full items-center justify-center mt-8 page">
       <div className="flex w-full max-w-sm flex-col gap-4 rounded-large bg-content1 px-8 pb-10 pt-6 shadow-small">
@@ -15,7 +18,7 @@ export const LoginPage = () => {
             startContent={<IconBrandWindows size={36} />}
             variant="bordered"
             as={"a"}
-            href="/oauth/redirect"
+            onPress={() => login()}
           >
             Continue with Microsoft
           </Button>

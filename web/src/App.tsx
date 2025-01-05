@@ -5,19 +5,16 @@ import {
   RouterProvider,
   To,
   useHref,
-  useLocation,
   useNavigate,
 } from "react-router-dom";
 import { routes } from "./routes";
 import { ToastProvider } from "./hooks/useToast";
 import { TopMenu } from "./components/TopMenu";
 import { NextUIProvider, Progress } from "@nextui-org/react";
-import { useEffect, useTransition } from "react";
-import { useAuth } from "./hooks/useAuth";
+import { useTransition } from "react";
+import { AuthGuard } from "./hooks/useAuth";
 
 const Bootstrap = () => {
-  const auth = useAuth();
-  const location = useLocation();
   const [isTransitioning, startTransition] = useTransition();
   const navigateRaw = useNavigate();
 
@@ -32,17 +29,6 @@ const Bootstrap = () => {
     });
   };
 
-  const needAuthentication = !auth && location.pathname !== "/login";
-  useEffect(() => {
-    if (needAuthentication) {
-      navigateRaw("/login");
-    }
-  }, [needAuthentication, navigateRaw]);
-
-  if (needAuthentication) {
-    return null;
-  }
-
   return (
     <NextUIProvider navigate={navigate} useHref={useHref}>
       <ToastProvider>
@@ -55,7 +41,9 @@ const Bootstrap = () => {
           />
         )}
         <TopMenu />
-        <Outlet />
+        <AuthGuard>
+          <Outlet />
+        </AuthGuard>
       </ToastProvider>
     </NextUIProvider>
   );

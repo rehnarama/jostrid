@@ -990,6 +990,7 @@ dependencies = [
  "hyper 1.4.1",
  "hyper-util",
  "jwt-authorizer",
+ "log",
  "oauth2",
  "reqwest 0.12.12",
  "serde",

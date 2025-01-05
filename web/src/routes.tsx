@@ -3,6 +3,7 @@ import { ExpenseListPage } from "./pages/ExpenseListPage";
 import { ExpensePage } from "./pages/ExpensePage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
+import { OauthCallbackPage } from "./pages/OauthCallbackPage";
 
 export const routes: RouteObject[] = [
   {
@@ -12,6 +13,10 @@ export const routes: RouteObject[] = [
   {
     path: "/expense/:id",
     element: <ExpensePage />,
+  },
+  {
+    path: "/oauth/callback",
+    element: <OauthCallbackPage />,
   },
   {
     path: "/login",

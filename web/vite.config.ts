@@ -8,7 +8,6 @@ export default defineConfig({
     host: "0.0.0.0",
     proxy: {
       "/api": "http://localhost:3000",
-      "/oauth": "http://localhost:3000",
     },
   },
 });

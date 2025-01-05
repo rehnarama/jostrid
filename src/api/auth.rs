@@ -3,10 +3,11 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Redirect},
     routing::{get, post},
-    Router,
+    Json, Router,
 };
+use log::warn;
 use oauth2::CsrfToken;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use tower_sessions::Session;
 
@@ -16,7 +17,10 @@ use time::OffsetDateTime;
 use tower_cookies::{Cookie, Cookies};
 use tracing::{event, Level};
 
-use crate::service::auth_service::AuthService;
+use crate::{
+    db::user::User,
+    service::auth_service::{AuthService, JostridTokenResponse},
+};
 
 use crate::{server::application::App, service::auth_service::Credentials};
 
@@ -30,14 +34,21 @@ pub struct AuthzResp {
     state: CsrfToken,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct LoginResponseDto {
+    user: User,
+    #[serde(flatten)]
+    token: JostridTokenResponse,
+}
+
 pub fn router() -> Router<App> {
     Router::new()
-        .route("/oauth/callback", get(callback))
-        .route("/oauth/redirect", get(redirect))
+        .route("/callback", get(callback))
+        .route("/redirect", get(redirect))
         .route("/logout", post(logout))
 }
 
-async fn redirect(State(app_state): State<App>, session: Session) -> impl IntoResponse {
+async fn redirect(State(app_state): State<App>, session: Session) -> String {
     let auth_service = AuthService::new(app_state.db, app_state.oauth_client);
 
     let (pkce_code_challenge, pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
@@ -52,7 +63,7 @@ async fn redirect(State(app_state): State<App>, session: Session) -> impl IntoRe
         .await
         .expect("Serialization should not fail.");
 
-    Redirect::to(auth_url.as_str()).into_response()
+    auth_url.to_string()
 }
 
 async fn logout(cookies: Cookies) -> impl IntoResponse {
@@ -73,10 +84,16 @@ async fn callback(
     cookies: Cookies,
 ) -> impl IntoResponse {
     let Ok(Some(old_state)) = session.get::<CsrfToken>(CSRF_STATE_KEY).await else {
+        warn!("No CSRF token in session");
         return StatusCode::BAD_REQUEST.into_response();
     };
     // Ensure the CSRF state has not been tampered with.
     if old_state.secret() != new_state.secret() {
+        warn!(
+            "Bad old_state, got {} expected {}",
+            old_state.secret(),
+            new_state.secret()
+        );
         return StatusCode::BAD_REQUEST.into_response();
     };
 
@@ -109,11 +126,11 @@ async fn callback(
         }
     };
 
-    match auth_service
+    let user = match auth_service
         .authenticate(token_response.access_token().secret())
         .await
     {
-        Ok(_) => (),
+        Ok(user) => user,
         Err(auth_error) => {
             event!(Level::ERROR, %auth_error, "Failed to get user info");
             return (
@@ -123,16 +140,10 @@ async fn callback(
                 .into_response();
         }
     };
-    let mut cookie = Cookie::new(
-        ACCESS_TOKEN_KEY,
-        token_response.access_token().secret().clone(),
-    );
-    cookie.set_path("/");
-    let expires_in = token_response
-        .expires_in()
-        .unwrap_or(Duration::from_secs(3600));
-    cookie.set_expires(OffsetDateTime::now_utc() + expires_in);
-    cookies.add(cookie);
 
-    Redirect::to("/").into_response()
+    Json(LoginResponseDto {
+        user,
+        token: token_response,
+    })
+    .into_response()
 }

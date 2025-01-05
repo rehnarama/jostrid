@@ -73,7 +73,7 @@ impl App {
     pub async fn serve(self) -> Result<(), Box<dyn std::error::Error>> {
         let session_store = MemoryStore::default();
         let session_layer = SessionManagerLayer::new(session_store)
-            .with_secure(false)
+            .with_secure(true)
             .with_same_site(SameSite::Lax) // Ensure we send the cookie from the OAuth redirect.
             .with_expiry(Expiry::OnInactivity(Duration::days(1)));
 
@@ -89,14 +89,18 @@ impl App {
                 .as_ref()
                 .is_some_and(|scp| scp == "Jostrid.Access")
         })
-        .jwt_source(JwtSource::Cookie(ACCESS_TOKEN_KEY.to_string()))
+        .jwt_source(JwtSource::AuthorizationHeader)
         .build()
         .await
         .expect("Couldn't load oidc url");
 
         let cors_layer = CorsLayer::new()
-            .allow_origin("https://jostrid.se".parse::<HeaderValue>().unwrap())
+            .allow_origin([
+                "https://jostrid.se".parse().unwrap(),
+                "http://localhost:5173".parse().unwrap(),
+            ])
             .allow_headers([http::header::CONTENT_TYPE])
+            // .allow_credentials(true)
             .allow_methods(Any);
 
         // build our application with a route
@@ -108,7 +112,7 @@ impl App {
             .nest("/api/me", get_me_api())
             .layer(jwt_auth.into_layer())
             .route("/api", get(hello_world))
-            .nest("/", auth::router())
+            .nest("/api/oauth", auth::router())
             .with_state(self)
             .layer(session_layer)
             .layer(CookieManagerLayer::new())

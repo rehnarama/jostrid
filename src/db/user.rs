@@ -1,7 +1,7 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-#[derive(Debug, sqlx::FromRow, Serialize, Clone)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct User {
     pub id: i32,
     pub name: String,
