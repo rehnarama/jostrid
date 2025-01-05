@@ -23,7 +23,7 @@ const PATH_TO_NAME_MAP: Record<string, string> = {
 export const TopMenu = () => {
   const location = useLocation();
   const auth = useAuth();
-  const me = useMe({ isPaused: () => auth === undefined });
+  const me = useMe({ isPaused: () => !auth.isAuthenticated });
 
   const crumbs: Array<{ href: string; name: string }> = [
     {

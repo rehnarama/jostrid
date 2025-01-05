@@ -42,11 +42,8 @@ class AuthClient extends EventEmitter<"change"> {
     }
   }
 
-  public isAuthenticated = () => {
-    if (!this.data) {
-      return false;
-    }
-    const expires = this.data.payload.exp * 1000;
+  public isTokenValid = (tokenPayload: JostridJwtPayload) => {
+    const expires = tokenPayload.exp * 1000;
     return Date.now() < expires;
   };
 
@@ -98,6 +95,7 @@ const client = new AuthClient();
 
 export const useAuth = () => {
   const location = useLocation();
+  const clientData = client.use();
   const [searchParams] = useSearchParams();
   const toast = useToast();
   const navigate = useNavigate();
@@ -125,7 +123,9 @@ export const useAuth = () => {
   }, []);
 
   return {
-    isAuthenticated: client.isAuthenticated(),
+    isAuthenticated: clientData
+      ? client.isTokenValid(clientData.payload)
+      : false,
     login,
     client,
   };
