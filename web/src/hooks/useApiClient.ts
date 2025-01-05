@@ -15,7 +15,7 @@ export const useApiClient = () => {
         ...init,
         headers: {
           ...headers,
-          Authorization: `Bearer ${auth.accessToken}`,
+          Authorization: `Bearer ${auth.client.getToken()}`,
         },
       });
     },

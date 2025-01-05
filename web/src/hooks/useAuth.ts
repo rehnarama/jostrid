@@ -50,6 +50,10 @@ class AuthClient extends EventEmitter<"change"> {
     return Date.now() < expires;
   };
 
+  public getToken = () => {
+    return this.data?.authResult.access_token;
+  };
+
   public acquireToken = memoize(async (code: string, state: string) => {
     const response = await fetch(
       `/api/oauth/callback?code=${code}&state=${state}`
@@ -95,7 +99,6 @@ const client = new AuthClient();
 export const useAuth = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const auth = client.use();
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -122,10 +125,9 @@ export const useAuth = () => {
   }, []);
 
   return {
-    payload: auth?.payload,
-    accessToken: auth?.authResult.access_token,
     isAuthenticated: client.isAuthenticated(),
     login,
+    client,
   };
 };
 
