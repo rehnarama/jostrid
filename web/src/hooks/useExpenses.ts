@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { useData } from "./useData";
 import { SWRConfiguration } from "swr";
-const { VITE_BACKEND_URL } = import.meta.env;
+import { useApiClient } from "./useApiClient";
 
 export const PaidBy = z.object({
   id: z.number(),
@@ -60,10 +60,10 @@ export const useExpenses = <C extends SWRConfiguration>(config?: C) => {
     Expense.array(),
     config ?? { suspense: true }
   );
+  const api = useApiClient();
 
   const upsert = async (upsertExpenseDto: UpsertExpenseDto) => {
-    const response = await fetch(`${VITE_BACKEND_URL}/api/expense`, {
-      mode: "cors",
+    const response = await api.fetch(`/api/expense`, {
       method: "PUT",
       body: JSON.stringify(upsertExpenseDto),
       headers: {
@@ -88,8 +88,7 @@ export const useExpenses = <C extends SWRConfiguration>(config?: C) => {
   };
 
   const remove = async (expenseId: number) => {
-    await fetch(`${VITE_BACKEND_URL}/api/expense/${expenseId}`, {
-      mode: "cors",
+    await api.fetch(`/api/expense/${expenseId}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
