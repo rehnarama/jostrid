@@ -64,7 +64,11 @@ impl App {
         let oauth_client =
             BasicClient::new(client_id, Some(client_secret), auth_url, Some(token_url))
                 .set_redirect_uri(
-                    RedirectUrl::new("http://localhost:5173/oauth/callback".to_string()).unwrap(),
+                    RedirectUrl::new(
+                        env::var(REDIRECT_URL)
+                            .unwrap_or("http://localhost:5173/oauth/callback".to_string()),
+                    )
+                    .unwrap(),
                 );
 
         Ok(App { db, oauth_client })
