@@ -32,7 +32,7 @@ interface NewExpenseModalContentProps {
   onClose?: () => void;
   me: Me;
   users: User[];
-  categories: ExpenseCategory;
+  categories: ExpenseCategory[];
 }
 
 const NewExpenseModalContent = ({
@@ -99,7 +99,7 @@ const NewExpenseModalContent = ({
     try {
       setIsCreating(true);
       await upsertExpense(createExpenseDto);
-      props.onClose?.();
+      onClose?.();
     } catch (e) {
       toast.show("Failed to create expense", errorLikeToMessage(e), "danger");
     } finally {
@@ -199,7 +199,7 @@ const NewExpenseModalContent = ({
               defaultSelectedKeys={
                 expense?.category ? [String(expense.category)] : undefined
               }
-              items={categories.data}
+              items={categories}
             >
               {(category) => (
                 <SelectItem key={category.id}>{category.name}</SelectItem>
@@ -241,7 +241,7 @@ export interface NewExpenseModalProps {
 }
 
 export const NewExpenseModal = (props: NewExpenseModalProps) => {
-  const categories = useExpenseCategory();
+  const { data: categories } = useExpenseCategory();
   const { data: users } = useUsers();
   const { data: me } = useMe({ suspense: true });
 
