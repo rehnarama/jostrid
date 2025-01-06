@@ -103,8 +103,7 @@ impl App {
                 "https://jostrid.se".parse().unwrap(),
                 "http://localhost:5173".parse().unwrap(),
             ])
-            .allow_headers([http::header::CONTENT_TYPE])
-            // .allow_credentials(true)
+            .allow_headers([http::header::CONTENT_TYPE, http::header::AUTHORIZATION])
             .allow_methods(Any);
 
         // build our application with a route

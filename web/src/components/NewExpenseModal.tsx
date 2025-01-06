@@ -1,6 +1,9 @@
-import { useExpenseCategory } from "../hooks/useExpenseCategory";
+import {
+  ExpenseCategory,
+  useExpenseCategory,
+} from "../hooks/useExpenseCategory";
 import { FormEvent, useState } from "react";
-import { useUsers } from "../hooks/useUser";
+import { User, useUsers } from "../hooks/useUser";
 import { assert } from "../utils/assert";
 import { Expense, UpsertExpenseDto, useExpenses } from "../hooks/useExpenses";
 import { useToast } from "../hooks/useToast";
@@ -18,7 +21,7 @@ import {
   SelectItem,
   Slider,
 } from "@nextui-org/react";
-import { useMe } from "../hooks/useMe";
+import { Me, useMe } from "../hooks/useMe";
 import { errorLikeToMessage } from "../lib/utils";
 
 const AMOUNT_REGEX = /\d+([.,]\d+)?/;
@@ -27,16 +30,23 @@ const NUMBER_REGEX = /\d+/;
 interface NewExpenseModalContentProps {
   expense?: Expense;
   onClose?: () => void;
+  me: Me;
+  users: User[];
+  categories: ExpenseCategory;
 }
 
-const NewExpenseModalContent = (props: NewExpenseModalContentProps) => {
-  const expense = props.expense;
+const NewExpenseModalContent = ({
+  expense,
+  onClose,
+  me,
+  users,
+  categories,
+}: NewExpenseModalContentProps) => {
   const toast = useToast();
-  const categories = useExpenseCategory();
-  const { upsert: upsertExpense, remove: removeExpense } = useExpenses();
+  const { upsert: upsertExpense, remove: removeExpense } = useExpenses({
+    isPaused: () => true,
+  });
   const [currency] = useState("SEK");
-  const { data: users } = useUsers();
-  const { data: me } = useMe({ suspense: true });
   const [sharePercentage, setSharePercentage] = useState<number[]>(
     expense
       ? expense.shares.map((share) =>
@@ -51,7 +61,7 @@ const NewExpenseModalContent = (props: NewExpenseModalContentProps) => {
     assert(expense, "No expense found");
 
     removeExpense(expense.id);
-    props.onClose?.();
+    onClose?.();
   };
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -231,9 +241,19 @@ export interface NewExpenseModalProps {
 }
 
 export const NewExpenseModal = (props: NewExpenseModalProps) => {
+  const categories = useExpenseCategory();
+  const { data: users } = useUsers();
+  const { data: me } = useMe({ suspense: true });
+
   return (
     <Modal isOpen={props.open} onClose={props.onClose}>
-      <NewExpenseModalContent expense={props.expense} onClose={props.onClose} />
+      <NewExpenseModalContent
+        expense={props.expense}
+        onClose={props.onClose}
+        categories={categories}
+        users={users}
+        me={me}
+      />
     </Modal>
   );
 };

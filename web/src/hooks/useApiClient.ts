@@ -17,6 +17,7 @@ export const useApiClient = () => {
           ...headers,
           Authorization: `Bearer ${auth.client.getToken()}`,
         },
+        mode: VITE_BACKEND_URL !== "" ? "cors" : undefined,
       });
     },
     [auth]
