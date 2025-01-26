@@ -31,7 +31,7 @@ export const HomePage = () => {
 
       <h2 className="text-2xl mt-2 mb-2">Appar</h2>
 
-      <div className="grid gap-3 grid-cols-3 md:grid-cols-5">
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
         <AppCard
           name="Splitten"
           description="Lägg till utgifter"
