@@ -17,7 +17,7 @@ use crate::{
     server::application::App,
 };
 
-use super::{expense_category::ExpenseCategoryDto, user::UserDto};
+use super::expense_category::ExpenseCategoryDto;
 
 #[derive(Serialize)]
 pub struct ExpenseDto {
@@ -82,7 +82,7 @@ struct UpsertAccountShareDto {
 pub struct ExpenseWithEverythingDto {
     #[serde(flatten)]
     pub expense: ExpenseDto,
-    pub paid_by: UserDto,
+    pub paid_by: i32,
     pub category: Option<ExpenseCategoryDto>,
     shares: Vec<AccountShareDto>,
 }
@@ -105,7 +105,7 @@ async fn get_expenses(
         .map(|(expense, shares)| ExpenseWithEverythingDto {
             expense: (&expense.expense).into(),
             category: expense.category.as_ref().map(|category| category.into()),
-            paid_by: (&expense.paid_by).into(),
+            paid_by: expense.paid_by,
             shares: shares.iter().map(|share| share.into()).collect(),
         })
         .collect::<Vec<_>>();
@@ -123,7 +123,7 @@ async fn get_expense(
         .map(|(expense, shares)| ExpenseWithEverythingDto {
             expense: (&expense.expense).into(),
             category: expense.category.as_ref().map(|category| category.into()),
-            paid_by: (&expense.paid_by).into(),
+            paid_by: expense.paid_by,
             shares: shares.iter().map(|share| share.into()).collect(),
         })
         .ok_or_else(|| (StatusCode::NOT_FOUND, "Expense not found".to_string()))?;
@@ -166,7 +166,7 @@ async fn upsert_expense(
             .category
             .as_ref()
             .map(|category| category.into()),
-        paid_by: (&new_expense.0.paid_by).into(),
+        paid_by: new_expense.0.paid_by,
         shares: new_expense.1.iter().map(|share| share.into()).collect(),
     }))
 }

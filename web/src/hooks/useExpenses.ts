@@ -3,13 +3,6 @@ import { useData } from "./useData";
 import { SWRConfiguration } from "swr";
 import { useApiClient } from "./useApiClient";
 
-export const PaidBy = z.object({
-  id: z.number(),
-  name: z.string(),
-  email: z.string(),
-});
-export type PaidBy = z.infer<typeof PaidBy>;
-
 export const Share = z.object({
   expense_id: z.number(),
   user_id: z.number(),
@@ -28,7 +21,7 @@ export const Expense = z.object({
   total: z.number(),
   currency: z.string(),
   created_at: z.string().datetime(),
-  paid_by: PaidBy,
+  paid_by: z.number(),
   category: Category.nullable(),
   shares: z.array(Share),
   is_payment: z.boolean(),

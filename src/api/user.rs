@@ -12,6 +12,7 @@ pub struct UserDto {
     id: i32,
     name: String,
     email: String,
+    phone_number: Option<String>,
 }
 
 impl From<&User> for UserDto {
@@ -20,6 +21,7 @@ impl From<&User> for UserDto {
             id: value.id,
             name: value.name.clone(),
             email: value.email.clone(),
+            phone_number: value.phone_number.clone(),
         }
     }
 }

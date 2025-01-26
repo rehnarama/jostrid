@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { User, useUsers } from "../hooks/useUser";
+import { useRef, useState } from "react";
+import { UserDto, useUsers } from "../hooks/useUser";
 import { assert } from "../utils/assert";
 import { useExpenses } from "../hooks/useExpenses";
 import { useToast } from "../hooks/useToast";
@@ -18,53 +18,39 @@ import {
   Select,
   SelectItem,
 } from "@nextui-org/react";
-import { Balances, formatCurrency } from "../utils/expenseUtils";
-import { useMe } from "../hooks/useMe";
-import { errorLikeToMessage } from "../lib/utils";
+import { CurrencyBalances, formatCurrency } from "../utils/expenseUtils";
+import { MeDto, useMe } from "../hooks/useMe";
+import { errorLikeToMessage, generateSwishLink } from "../lib/utils";
 
-const UNKNOWN_USER: User = {
+const UNKNOWN_USER: UserDto = {
   id: -1,
   name: "Unknown",
+  phone_number: null,
 };
 
 export interface SettleUpModalProps {
   open?: boolean;
   onClose?: () => void;
-  balances: Balances;
+  balances: CurrencyBalances;
+}
+
+interface Payment {
+  payerId: number;
+  receiverId: number;
+  total: number;
+  currency: string;
 }
 
 export const SettleUpModal = (props: SettleUpModalProps) => {
   const me = useMe({ suspense: true }).data;
   const users = useUsers().data;
-  const expenses = useExpenses({ isPaused: () => true });
   const [isSettlingUp, setIsSettlingUp] = useState(false);
+  const expenses = useExpenses({ isPaused: () => true });
   const toast = useToast();
 
-  const flatBalances = Object.entries(props.balances).flatMap(
-    ([currency, currencyBalance]) => {
-      return Object.entries(currencyBalance).map(([userId, balance]) => {
-        const user =
-          users.find((user) => user.id === Number(userId)) ?? UNKNOWN_USER;
-
-        return {
-          currency,
-          user,
-          balance,
-        };
-      });
-    }
-  );
-
-  const myBalances = flatBalances.filter(({ user }) => user.id === me.id);
-  const otherBalances = flatBalances
-    .filter(({ user }) => user.id !== me.id)
-    .filter(({ balance }) => balance !== 0);
-
   const onRegisterPayment = async (
-    payerId: number,
-    receiverId: number,
-    total: number,
-    currency: string
+    { payerId, receiverId, total, currency }: Payment,
+    openSwish = false
   ) => {
     const payer = users.find((user) => user.id === payerId);
     const receiver = users.find((user) => user.id === receiverId);
@@ -94,6 +80,18 @@ export const SettleUpModal = (props: SettleUpModalProps) => {
         undefined,
         "success"
       );
+
+      if (openSwish) {
+        assert(currency === "SEK", "Swish is only valid for SEK");
+        assert(receiver.phone_number, "No phone number registered on receiver");
+
+        const link = generateSwishLink(
+          receiver.phone_number,
+          total / 100,
+          "Betalning via jostrid.se"
+        );
+        window.open(link, "_blank");
+      }
       props.onClose?.();
     } catch (e) {
       toast.show("Misslyckades göra upp", errorLikeToMessage(e), "danger");
@@ -101,6 +99,26 @@ export const SettleUpModal = (props: SettleUpModalProps) => {
       setIsSettlingUp(false);
     }
   };
+
+  const flatBalances = Object.entries(props.balances).flatMap(
+    ([currency, currencyBalance]) => {
+      return Object.entries(currencyBalance).map(([userId, balance]) => {
+        const user =
+          users.find((user) => user.id === Number(userId)) ?? UNKNOWN_USER;
+
+        return {
+          currency,
+          user,
+          balance,
+        };
+      });
+    }
+  );
+
+  const myBalances = flatBalances.filter(({ user }) => user.id === me.id);
+  const otherBalances = flatBalances
+    .filter(({ user }) => user.id !== me.id)
+    .filter(({ balance }) => balance !== 0);
 
   return (
     <Modal isOpen={props.open ?? false} onClose={props.onClose}>
@@ -146,77 +164,14 @@ export const SettleUpModal = (props: SettleUpModalProps) => {
                   }
                 >
                   <h1 className="mb-1">Registrera betalning</h1>
-                  <Form
-                    onSubmit={(e) => {
-                      e.preventDefault();
 
-                      // Get form data as an object.
-                      const data = new FormData(e.currentTarget);
-                      const payer = Number(data.get("payer"));
-                      const receiver = Number(data.get("receiver"));
-                      const total = Number(data.get("total")) * 100;
-
-                      onRegisterPayment(
-                        payer,
-                        receiver,
-                        total,
-                        balance.currency
-                      );
-                    }}
-                  >
-                    <div className="self-stretch flex flex-row gap-2">
-                      <Select
-                        label="Betalare"
-                        name="payer"
-                        defaultSelectedKeys={[
-                          String(balance.balance < 0 ? balance.user.id : me.id),
-                        ]}
-                        items={users}
-                      >
-                        {(user) => {
-                          return (
-                            <SelectItem key={String(user.id)}>
-                              {user.name}
-                            </SelectItem>
-                          );
-                        }}
-                      </Select>
-                      <Select
-                        label="Mottagare"
-                        name="receiver"
-                        defaultSelectedKeys={[
-                          String(balance.balance < 0 ? me.id : balance.user.id),
-                        ]}
-                        items={users}
-                      >
-                        {(user) => {
-                          return (
-                            <SelectItem key={String(user.id)}>
-                              {user.name}
-                            </SelectItem>
-                          );
-                        }}
-                      </Select>
-                    </div>
-                    <Input
-                      label="Summa"
-                      type="number"
-                      name="total"
-                      min={1}
-                      endContent={balance.currency}
-                      defaultValue={String(Math.abs(balance.balance / 100))}
-                    />
-                    <div className="self-stretch flex flex-row gap-1">
-                      <Button
-                        className="flex-1"
-                        color="primary"
-                        isLoading={isSettlingUp}
-                        type="submit"
-                      >
-                        Registrera
-                      </Button>
-                    </div>
-                  </Form>
+                  <SettleUpBalanceForm
+                    balance={balance}
+                    onRegisterPayment={onRegisterPayment}
+                    me={me}
+                    users={users}
+                    isSettlingUp={isSettlingUp}
+                  />
                 </AccordionItem>
               );
             })}
@@ -226,3 +181,109 @@ export const SettleUpModal = (props: SettleUpModalProps) => {
     </Modal>
   );
 };
+
+interface SettleUpBalanceFormProps {
+  balance: {
+    currency: string;
+    user: { id: number; name: string; phone_number: string | null };
+    balance: number;
+  };
+  onRegisterPayment: (payment: Payment, openSwish?: boolean) => Promise<void>;
+  isSettlingUp: boolean;
+  me: MeDto;
+  users: UserDto[];
+}
+
+function SettleUpBalanceForm({
+  balance,
+  onRegisterPayment,
+  isSettlingUp,
+  me,
+  users,
+}: SettleUpBalanceFormProps) {
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const onSubmit = (openSwish: boolean = false) => {
+    assert(formRef.current);
+
+    // Get form data as an object.
+    const data = new FormData(formRef.current);
+    const payerId = Number(data.get("payer"));
+    const receiverId = Number(data.get("receiver"));
+    const total = Number(data.get("total")) * 100;
+
+    onRegisterPayment(
+      {
+        payerId,
+        receiverId,
+        total,
+        currency: balance.currency,
+      },
+      openSwish
+    );
+  };
+  return (
+    <Form
+      ref={formRef}
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit();
+      }}
+    >
+      <div className="self-stretch flex flex-row gap-2">
+        <Select
+          label="Betalare"
+          name="payer"
+          defaultSelectedKeys={[
+            String(balance.balance < 0 ? balance.user.id : me.id),
+          ]}
+          items={users}
+        >
+          {(user) => {
+            return <SelectItem key={String(user.id)}>{user.name}</SelectItem>;
+          }}
+        </Select>
+        <Select
+          label="Mottagare"
+          name="receiver"
+          defaultSelectedKeys={[
+            String(balance.balance < 0 ? me.id : balance.user.id),
+          ]}
+          items={users}
+        >
+          {(user) => {
+            return <SelectItem key={String(user.id)}>{user.name}</SelectItem>;
+          }}
+        </Select>
+      </div>
+      <Input
+        label="Summa"
+        type="number"
+        name="total"
+        min={1}
+        endContent={balance.currency}
+        defaultValue={String(Math.abs(balance.balance / 100))}
+      />
+      <div className="self-stretch flex flex-row gap-1">
+        <Button
+          className="flex-1"
+          color="primary"
+          isLoading={isSettlingUp}
+          type="submit"
+        >
+          Registrera
+        </Button>
+        {}
+        <Button
+          className="flex-1"
+          color="primary"
+          variant="bordered"
+          isLoading={isSettlingUp}
+          onPress={() => onSubmit(true)}
+        >
+          Registrera & Swisha
+        </Button>
+      </div>
+    </Form>
+  );
+}

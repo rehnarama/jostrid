@@ -1,19 +1,17 @@
 use axum::{
     extract::Query,
     http::StatusCode,
-    response::{IntoResponse, Redirect},
+    response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
 use log::warn;
 use oauth2::CsrfToken;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 use tower_sessions::Session;
 
 use axum::extract::State;
 use oauth2::{PkceCodeChallenge, TokenResponse};
-use time::OffsetDateTime;
 use tower_cookies::{Cookie, Cookies};
 use tracing::{event, Level};
 
@@ -81,7 +79,6 @@ async fn callback(
         code,
         state: new_state,
     }): Query<AuthzResp>,
-    cookies: Cookies,
 ) -> impl IntoResponse {
     let Ok(Some(old_state)) = session.get::<CsrfToken>(CSRF_STATE_KEY).await else {
         warn!("No CSRF token in session");

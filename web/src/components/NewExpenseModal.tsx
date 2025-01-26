@@ -3,7 +3,7 @@ import {
   useExpenseCategory,
 } from "../hooks/useExpenseCategory";
 import { FormEvent, useState } from "react";
-import { User, useUsers } from "../hooks/useUser";
+import { UserDto, useUsers } from "../hooks/useUser";
 import { assert } from "../utils/assert";
 import { Expense, UpsertExpenseDto, useExpenses } from "../hooks/useExpenses";
 import { useToast } from "../hooks/useToast";
@@ -21,7 +21,7 @@ import {
   SelectItem,
   Slider,
 } from "@nextui-org/react";
-import { Me, useMe } from "../hooks/useMe";
+import { MeDto, useMe } from "../hooks/useMe";
 import { errorLikeToMessage } from "../lib/utils";
 
 const AMOUNT_REGEX = /\d+([.,]\d+)?/;

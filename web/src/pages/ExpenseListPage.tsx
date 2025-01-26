@@ -114,7 +114,9 @@ export const ExpenseListPage = () => {
                   <ListboxItem
                     key={expense.id}
                     description={
-                      !expense.is_payment ? getPaidString(expense) : undefined
+                      !expense.is_payment
+                        ? getPaidString(expense, users)
+                        : undefined
                     }
                     startContent={
                       expense.is_payment ? (

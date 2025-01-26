@@ -4,7 +4,7 @@ use chrono::Utc;
 use serde::Serialize;
 use sqlx::{postgres::PgRow, FromRow, PgPool, Row};
 
-use super::{expense_category::ExpenseCategory, user::User};
+use super::expense_category::ExpenseCategory;
 
 static GET_ALL_EXPENSE: &str = r#"
 SELECT 
@@ -108,18 +108,14 @@ pub struct InsertAccountShare {
 
 pub struct ExpenseWithPayerAndCategory {
     pub expense: Expense,
-    pub paid_by: User,
+    pub paid_by: i32,
     pub category: Option<ExpenseCategory>,
 }
 
 impl FromRow<'_, PgRow> for ExpenseWithPayerAndCategory {
     fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
         let expense = Expense::from_row(row)?;
-        let paid_by = User {
-            id: row.try_get("paid_by")?,
-            name: row.try_get("paid_by_name")?,
-            email: row.try_get("paid_by_email")?,
-        };
+        let paid_by = row.try_get("paid_by")?;
         let category = if let Ok(name) = row.try_get("category_name") {
             Some(ExpenseCategory {
                 id: row.try_get("category_id")?,
