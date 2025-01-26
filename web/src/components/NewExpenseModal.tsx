@@ -30,8 +30,8 @@ const NUMBER_REGEX = /\d+/;
 interface NewExpenseModalContentProps {
   expense?: Expense;
   onClose?: () => void;
-  me: Me;
-  users: User[];
+  me: MeDto;
+  users: UserDto[];
   categories: ExpenseCategory[];
 }
 
@@ -143,7 +143,7 @@ const NewExpenseModalContent = ({
               name="paidBy"
               isRequired
               defaultValue={
-                expense ? String(expense.paid_by.id) : String(me.id)
+                expense ? String(expense.paid_by) : String(me.id)
               }
             >
               {users.map((user) => (

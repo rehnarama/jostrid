@@ -1,6 +1,5 @@
 import { RouteObject } from "react-router";
 import { ExpenseListPage } from "./pages/ExpenseListPage";
-import { ExpensePage } from "./pages/ExpensePage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { OauthCallbackPage } from "./pages/OauthCallbackPage";
@@ -9,10 +8,6 @@ export const routes: RouteObject[] = [
   {
     path: "/expense",
     element: <ExpenseListPage />,
-  },
-  {
-    path: "/expense/:id",
-    element: <ExpensePage />,
   },
   {
     path: "/oauth/callback",
