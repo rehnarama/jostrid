@@ -23,8 +23,10 @@ import {
 } from "@nextui-org/react";
 import { MeDto, useMe } from "../hooks/useMe";
 import { errorLikeToMessage } from "../lib/utils";
+import { IconDivide, IconMinus, IconPlus, IconX } from "@tabler/icons-react";
+import { evaluateExpression } from "../utils/math";
+import { formatCurrency } from "../utils/expenseUtils";
 
-const AMOUNT_REGEX = /\d+([.,]\d+)?/;
 const NUMBER_REGEX = /\d+/;
 
 interface NewExpenseModalContentProps {
@@ -54,8 +56,12 @@ const NewExpenseModalContent = ({
         )
       : users.map(() => 100 / users.length)
   );
+  const [total, setTotal] = useState(
+    expense ? String(expense.total / 100) : ""
+  );
 
   const [isCreating, setIsCreating] = useState(false);
+  const [showOperations, setShowOperations] = useState(false);
 
   const deleteExpense = () => {
     assert(expense, "No expense found");
@@ -69,12 +75,11 @@ const NewExpenseModalContent = ({
     const data = new FormData(e.currentTarget);
 
     const name = data.get("name")?.toString() ?? "";
-    const total = data.get("total")?.toString() ?? "";
+    const total = evaluateExpression(data.get("total")?.toString() ?? "");
     const paidBy = data.get("paidBy")?.toString() ?? "";
     const category = data.get("category")?.toString() ?? "";
 
     assert(typeof name === "string");
-    assert(AMOUNT_REGEX.test(total));
     assert(NUMBER_REGEX.test(paidBy));
 
     const createExpenseDto: UpsertExpenseDto = {
@@ -132,19 +137,72 @@ const NewExpenseModalContent = ({
             <Input
               label="Totalt"
               name="total"
-              type="number"
-              endContent={currency}
+              endContent={
+                /[+-/*]/g.test(total)
+                  ? formatCurrency(evaluateExpression(total) * 100, currency)
+                  : currency
+              }
               isRequired
-              defaultValue={expense ? String(expense.total / 100) : undefined}
+              inputMode="numeric"
+              value={total}
+              onFocus={() => setShowOperations(true)}
+              onBlur={() => setShowOperations(false)}
+              onChange={(e) => setTotal(e.target.value)}
             />
+            {showOperations && (
+              <div className="fixed bottom-0 left-0 right-0 p-2 bg-slate-100 flex justify-center gap-1 z-50">
+                <Button
+                  className="flex-shrink"
+                  variant="flat"
+                  isIconOnly
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    setTotal((total) => total + "+");
+                  }}
+                >
+                  <IconPlus />
+                </Button>
+                <Button
+                  className="flex-shrink"
+                  variant="flat"
+                  isIconOnly
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    setTotal((total) => total + "-");
+                  }}
+                >
+                  <IconMinus />
+                </Button>
+                <Button
+                  className="flex-shrink"
+                  variant="flat"
+                  isIconOnly
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    setTotal((total) => total + "*");
+                  }}
+                >
+                  <IconX />
+                </Button>
+                <Button
+                  className="flex-shrink"
+                  variant="flat"
+                  isIconOnly
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    setTotal((total) => total + "/");
+                  }}
+                >
+                  <IconDivide />
+                </Button>
+              </div>
+            )}
 
             <RadioGroup
               label="Betalare"
               name="paidBy"
               isRequired
-              defaultValue={
-                expense ? String(expense.paid_by) : String(me.id)
-              }
+              defaultValue={expense ? String(expense.paid_by) : String(me.id)}
             >
               {users.map((user) => (
                 <Radio key={user.id} value={String(user.id)}>
