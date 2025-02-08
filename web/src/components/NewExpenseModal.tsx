@@ -108,7 +108,7 @@ const NewExpenseModalContent = ({
   };
 
   return (
-    <ModalContent>
+    <ModalContent className="max-h-dvh overflow-y-auto">
       <ModalHeader>{expense ? "Uppdatera Utgift" : "Ny utgift"}</ModalHeader>
       <ModalBody>
         {expense?.is_payment ? (

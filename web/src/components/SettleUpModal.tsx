@@ -122,7 +122,7 @@ export const SettleUpModal = (props: SettleUpModalProps) => {
 
   return (
     <Modal isOpen={props.open ?? false} onClose={props.onClose}>
-      <ModalContent>
+      <ModalContent className="max-h-dvh overflow-y-auto">
         <ModalHeader>Välj ett saldo att göra upp</ModalHeader>
         <ModalBody>
           <div className="flex gap-1">

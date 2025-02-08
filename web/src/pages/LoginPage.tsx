@@ -6,7 +6,7 @@ export const LoginPage = () => {
   const { login } = useAuth();
 
   return (
-    <div className="flex h-full w-full items-center justify-center mt-8 page">
+    <div className="flex h-full w-full items-center justify-center mt-8 page px-2">
       <div className="flex w-full max-w-sm flex-col gap-4 rounded-large bg-content1 px-8 pb-10 pt-6 shadow-small">
         <div className="flex flex-col gap-1">
           <h1 className="text-large font-medium">Sign in to your account</h1>
