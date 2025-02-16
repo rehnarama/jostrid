@@ -42,9 +42,11 @@ const NewExpenseModalContent = ({
   expense,
   onClose,
   me,
-  users,
+  users: unsortedUsers,
   categories,
 }: NewExpenseModalContentProps) => {
+  const users = unsortedUsers.toSorted((a, b) => a.id - b.id);
+
   const toast = useToast();
   const { upsert: upsertExpense, remove: removeExpense } = useExpenses({
     isPaused: () => true,
@@ -52,9 +54,17 @@ const NewExpenseModalContent = ({
   const [currency] = useState("SEK");
   const [sharePercentage, setSharePercentage] = useState<number[]>(
     expense
-      ? expense.shares.map((share) =>
-          Math.round((100 * Math.abs(share.share)) / expense.total)
-        )
+      ? expense.shares
+          .toSorted((a, b) => a.user_id - b.user_id)
+          .map(
+            (share) =>
+              Math.round(
+                100 *
+                  (expense.paid_by === share.user_id
+                    ? expense.total - share.share
+                    : -share.share)
+              ) / expense.total
+          )
       : users.map(() => 100 / users.length)
   );
   const [total, setTotal] = useState(
