@@ -81,9 +81,9 @@ const CATEGORY_ICON_MAP: Record<number, ReactNode> = {
 };
 
 export interface CategoryIconProps {
-  category: ExpenseCategory;
+  category?: ExpenseCategory | null;
 }
 
 export const CategoryIcon = ({ category }: CategoryIconProps) => {
-  return CATEGORY_ICON_MAP[category.id] ?? FALLBACK_ICON;
+  return CATEGORY_ICON_MAP[category?.id ?? NaN] ?? FALLBACK_ICON;
 };

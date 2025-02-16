@@ -23,6 +23,7 @@ import {
 } from "@nextui-org/react";
 import { useMe } from "../hooks/useMe";
 import { SettleUpModal } from "../components/SettleUpModal";
+import { CategoryIcon } from "../components/CategoryIcon";
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
 const PAGE_SIZE = 100;
@@ -119,17 +120,13 @@ export const ExpenseListPage = () => {
                         : undefined
                     }
                     startContent={
-                      expense.is_payment ? (
-                        <div className="w-8 h-8 flex items-center justify-center">
+                      <div className="w-8 h-8 flex items-center justify-center">
+                        {expense.is_payment ? (
                           <IconMoneybag />
-                        </div>
-                      ) : (
-                        <Avatar
-                          size="sm"
-                          name={expense.category?.name ?? "Okänd"}
-                          className="flex-shrink-0"
-                        />
-                      )
+                        ) : (
+                          <CategoryIcon category={expense.category} />
+                        )}
+                      </div>
                     }
                     endContent={
                       !expense.is_payment ? (
