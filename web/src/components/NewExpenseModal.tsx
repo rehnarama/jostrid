@@ -26,6 +26,7 @@ import { errorLikeToMessage } from "../lib/utils";
 import { IconDivide, IconMinus, IconPlus, IconX } from "@tabler/icons-react";
 import { evaluateExpression } from "../utils/math";
 import { formatCurrency } from "../utils/expenseUtils";
+import { CategoryIcon } from "./CategoryIcon";
 
 const NUMBER_REGEX = /\d+/;
 
@@ -84,7 +85,7 @@ const NewExpenseModalContent = ({
 
     const createExpenseDto: UpsertExpenseDto = {
       id: expense?.id,
-      created_at: new Date().toISOString(),
+      created_at: expense?.created_at ?? new Date().toISOString(),
       currency,
       name,
       paid_by: Number(paidBy),
@@ -260,7 +261,12 @@ const NewExpenseModalContent = ({
               items={categories}
             >
               {(category) => (
-                <SelectItem key={category.id}>{category.name}</SelectItem>
+                <SelectItem
+                  key={category.id}
+                  startContent={<CategoryIcon category={category} />}
+                >
+                  {category.name}
+                </SelectItem>
               )}
             </Select>
 
