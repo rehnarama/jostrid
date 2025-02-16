@@ -85,7 +85,7 @@ export const TopMenu = () => {
                 <p className="font-semibold">Inloggad som</p>
                 <p className="font-semibold">{me.data.email}</p>
               </DropdownItem>
-              <DropdownItem key="logout" as="a" href="/oauth/logout">
+              <DropdownItem key="logout" onPress={auth.logout}>
                 Logga ut
               </DropdownItem>
             </DropdownMenu>

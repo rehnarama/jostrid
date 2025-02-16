@@ -11,6 +11,7 @@ import { useToast } from "./useToast";
 import memoize from "lodash-es/memoize";
 import { z } from "zod";
 import EventEmitter from "eventemitter3";
+import { toError } from "../lib/utils";
 
 const AuthenticationResultDto = z.object({
   user: z.object({
@@ -19,6 +20,8 @@ const AuthenticationResultDto = z.object({
     email: z.string(),
   }),
   access_token: z.string(),
+  refresh_token: z.string().optional(),
+  scope: z.string(),
   expires_in: z.number(),
 });
 type AuthenticationResultDto = z.infer<typeof AuthenticationResultDto>;
@@ -30,6 +33,7 @@ class AuthClient extends EventEmitter<"change"> {
     authResult: AuthenticationResultDto;
     payload: JostridJwtPayload;
   } | null = null;
+  private refreshPromise: null | Promise<AuthenticationResultDto> = null;
 
   constructor() {
     super();
@@ -47,8 +51,16 @@ class AuthClient extends EventEmitter<"change"> {
     return Date.now() < expires;
   };
 
-  public getToken = () => {
-    return this.data?.authResult.access_token;
+  public getToken = async (): Promise<string> => {
+    if (this.data?.authResult && this.isTokenValid(this.data.payload)) {
+      return this.data.authResult.access_token;
+    } else if (this.data?.authResult) {
+      return (await this.refreshToken()).access_token;
+    } else {
+      throw new Error(
+        "No valid token nor any refresh token. User need to login again"
+      );
+    }
   };
 
   public acquireToken = memoize(async (code: string, state: string) => {
@@ -58,6 +70,53 @@ class AuthClient extends EventEmitter<"change"> {
     const data = await response.json();
     this.setAuthResult(AuthenticationResultDto.parse(data));
   });
+
+  public refreshToken = () => {
+    if (!this.refreshPromise) {
+      this.refreshPromise = this.refreshTokenInternal().finally(() => {
+        this.refreshPromise = null;
+      });
+    }
+    return this.refreshPromise;
+  };
+
+  private refreshTokenInternal = async (): Promise<AuthenticationResultDto> => {
+    if (
+      this.data === null ||
+      this.data.authResult.refresh_token === undefined
+    ) {
+      throw new Error(
+        "No refresh token available to refresh access token with."
+      );
+    }
+
+    try {
+      const response = await fetch(`/api/oauth/refresh`, {
+        method: "POST",
+        body: JSON.stringify({
+          refresh_token: this.data.authResult.refresh_token,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = AuthenticationResultDto.parse(await response.json());
+      this.setAuthResult(data);
+      return data;
+    } catch (e) {
+      console.error(
+        new Error("Failed to refresh token", { cause: toError(e) })
+      );
+      this.data = null;
+      this.emit("change");
+      throw e;
+    }
+  };
+
+  public logout = () => {
+    this.data = null;
+    this.emit("change");
+  };
 
   private setAuthResult = (authResult: AuthenticationResultDto) => {
     this.data = {
@@ -126,6 +185,9 @@ export const useAuth = () => {
     isAuthenticated: clientData
       ? client.isTokenValid(clientData.payload)
       : false,
+    canRefresh: clientData !== null,
+    refresh: client.refreshToken,
+    logout: client.logout,
     login,
     client,
   };
@@ -133,13 +195,15 @@ export const useAuth = () => {
 
 export const AuthGuard = (props: PropsWithChildren) => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, canRefresh } = useAuth();
 
   const needAuthentication =
     !isAuthenticated &&
+    !canRefresh &&
     !(
       location.pathname === "/login" || location.pathname === "/oauth/callback"
     );
+
   useEffect(() => {
     if (needAuthentication) {
       navigate("/login");

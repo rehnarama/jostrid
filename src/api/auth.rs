@@ -6,13 +6,12 @@ use axum::{
     Json, Router,
 };
 use log::warn;
-use oauth2::CsrfToken;
+use oauth2::{CsrfToken, RefreshToken};
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 
 use axum::extract::State;
 use oauth2::{PkceCodeChallenge, TokenResponse};
-use tower_cookies::{Cookie, Cookies};
 use tracing::{event, Level};
 
 use crate::{
@@ -24,7 +23,6 @@ use crate::{server::application::App, service::auth_service::Credentials};
 
 pub const CSRF_STATE_KEY: &str = "oauth.csrf-state";
 pub const PKCE_CODE_VERIFIER: &str = "pkce.code-verifier";
-pub const ACCESS_TOKEN_KEY: &str = "access_token";
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthzResp {
@@ -39,11 +37,16 @@ struct LoginResponseDto {
     token: JostridTokenResponse,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct RefreshRequestDto {
+    refresh_token: String,
+}
+
 pub fn router() -> Router<App> {
     Router::new()
         .route("/callback", get(callback))
         .route("/redirect", get(redirect))
-        .route("/logout", post(logout))
+        .route("/refresh", post(refresh))
 }
 
 async fn redirect(State(app_state): State<App>, session: Session) -> String {
@@ -64,12 +67,50 @@ async fn redirect(State(app_state): State<App>, session: Session) -> String {
     auth_url.to_string()
 }
 
-async fn logout(cookies: Cookies) -> impl IntoResponse {
-    let mut cookie = Cookie::from(ACCESS_TOKEN_KEY);
-    cookie.set_path("/");
-    cookies.remove(cookie);
+async fn refresh(
+    State(app_state): State<App>,
+    Json(refresh_request): Json<RefreshRequestDto>,
+) -> impl IntoResponse {
+    let auth_service = AuthService::new(app_state.db, app_state.oauth_client);
 
-    (StatusCode::OK).into_response()
+    let token_response = match auth_service
+        .exchange_refresh_token(
+            &RefreshToken::new(refresh_request.refresh_token),
+            "api://jostrid-api/Jostrid.Access,offline_access".to_string(),
+        )
+        .await
+    {
+        Ok(token_response) => token_response,
+        Err(auth_error) => {
+            dbg!(&auth_error);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to acquire token: {}", auth_error),
+            )
+                .into_response();
+        }
+    };
+
+    let user = match auth_service
+        .authenticate(token_response.access_token().secret())
+        .await
+    {
+        Ok(user) => user,
+        Err(auth_error) => {
+            event!(Level::ERROR, %auth_error, "Failed to get user info");
+            return (
+                StatusCode::FORBIDDEN,
+                format!("Failed to get user info: {}", auth_error),
+            )
+                .into_response();
+        }
+    };
+
+    Json(LoginResponseDto {
+        user,
+        token: token_response,
+    })
+    .into_response()
 }
 
 async fn callback(
@@ -108,7 +149,7 @@ async fn callback(
     let token_response = match auth_service
         .exchange_code(
             creds.clone(),
-            "api://jostrid-api/Jostrid.Access".to_string(),
+            "api://jostrid-api/Jostrid.Access,offline_access".to_string(),
         )
         .await
     {

@@ -7,7 +7,7 @@ use oauth2::{
     reqwest::{async_http_client, AsyncHttpClientError},
     url::Url,
     AuthorizationCode, CsrfToken, EmptyExtraTokenFields, PkceCodeChallenge, PkceCodeVerifier,
-    Scope, StandardTokenResponse,
+    RefreshToken, Scope, StandardTokenResponse,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -104,6 +104,7 @@ impl AuthService {
         self.client
             .authorize_url(CsrfToken::new_random)
             .add_scope(Scope::new("User.Read".to_string()))
+            .add_scope(Scope::new("offline_access".to_string()))
             .add_scope(Scope::new("api://jostrid-api/Jostrid.Access".to_string()))
             .set_pkce_challenge(pkce_code_challenge)
             .url()
@@ -120,6 +121,23 @@ impl AuthService {
             .exchange_code(AuthorizationCode::new(creds.code))
             .set_pkce_verifier(creds.pkce_code_verifier)
             .add_extra_param("scope", scope)
+            .request_async(async_http_client)
+            .await
+            .map_err(AuthError::OAuth2)?;
+
+        Ok(token_res)
+    }
+
+    pub async fn exchange_refresh_token(
+        &self,
+        refresh_token: &RefreshToken,
+        scope: String,
+    ) -> Result<JostridTokenResponse, AuthError> {
+        // Process authorization code, expecting a token response back.
+        let token_res = self
+            .client
+            .exchange_refresh_token(refresh_token)
+            .add_scope(Scope::new(scope))
             .request_async(async_http_client)
             .await
             .map_err(AuthError::OAuth2)?;
