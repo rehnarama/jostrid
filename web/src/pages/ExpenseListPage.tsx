@@ -14,7 +14,6 @@ import {
 } from "../utils/expenseUtils";
 import { useUsers } from "../hooks/useUser";
 import {
-  Avatar,
   Button,
   Divider,
   Listbox,
