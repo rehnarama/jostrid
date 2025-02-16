@@ -1,13 +1,11 @@
 import { useMemo, useState } from "react";
-import { IconMoneybag, IconPlus } from "@tabler/icons-react";
+import { IconMoneybag } from "@tabler/icons-react";
 import groupBy from "lodash-es/groupBy";
 
-import classes from "./ExpenseListPage.module.css";
 import { Expense, useExpenses } from "../hooks/useExpenses";
 import { NewExpenseModal } from "../components/NewExpenseModal";
 import { ExpenseAmount } from "../components/ExpenseAmount";
 import {
-  formatCurrency,
   getBalances,
   getPaidString,
   getPaymentString,
@@ -15,7 +13,6 @@ import {
 import { useUsers } from "../hooks/useUser";
 import {
   Button,
-  Divider,
   Listbox,
   ListboxItem,
   ListboxSection,
@@ -23,6 +20,7 @@ import {
 import { useMe } from "../hooks/useMe";
 import { SettleUpModal } from "../components/SettleUpModal";
 import { CategoryIcon } from "../components/CategoryIcon";
+import { ExpenseStatusCard } from "../components/ExpenseStatusCard";
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
 const PAGE_SIZE = 100;
@@ -51,56 +49,12 @@ export const ExpenseListPage = () => {
     myTotalPerCurrency[currency] = balances[currency][me.id];
   }
 
-  const allSettledUp = Object.values(myTotalPerCurrency).every(
-    (total) => total === 0
-  );
-
   return (
     <div className="page">
-      <header className={classes.header}>
-        {allSettledUp ? (
-          <p>Allt är lika!</p>
-        ) : (
-          Object.entries(myTotalPerCurrency)
-            .filter(([, total]) => total !== 0)
-            .map(([currency, myTotal]) => {
-              return (
-                <p key={currency}>
-                  {myTotal > 0 ? (
-                    <>
-                      Du ska få tillbaka{" "}
-                      <span className="text-success">
-                        {formatCurrency(Math.abs(myTotal), currency)}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      Du är skyldig{" "}
-                      <span className="text-danger">
-                        {formatCurrency(Math.abs(myTotal), currency)}
-                      </span>
-                    </>
-                  )}
-                </p>
-              );
-            })
-        )}
-
-        <Divider className="my-4" />
-
-        <div className="flex flex-row gap-2">
-          <Button
-            startContent={<IconPlus />}
-            onPress={() => setNewModalOpen((prev) => !prev)}
-            color="primary"
-          >
-            Ny utgift
-          </Button>
-          <Button variant="bordered" onPress={() => setSettleUpModalOpen(true)}>
-            Gör upp
-          </Button>
-        </div>
-      </header>
+      <ExpenseStatusCard
+        onAddPressed={() => setNewModalOpen(true)}
+        onSettleUpPressed={() => setSettleUpModalOpen(true)}
+      />
       <Listbox aria-label="List of expenses">
         {dates.map((date) => {
           const expenses = groupedExpenses[date];
@@ -119,7 +73,7 @@ export const ExpenseListPage = () => {
                         : undefined
                     }
                     startContent={
-                      <div className="w-8 h-8 flex items-center justify-center">
+                      <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
                         {expense.is_payment ? (
                           <IconMoneybag />
                         ) : (
