@@ -266,7 +266,7 @@ const NewExpenseModalContent = ({
               label="Kategori"
               name="category"
               defaultSelectedKeys={
-                expense?.category ? [String(expense.category)] : undefined
+                expense?.category ? [String(expense.category.id)] : undefined
               }
               items={categories}
             >
