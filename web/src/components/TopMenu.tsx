@@ -13,7 +13,7 @@ import {
   Link,
   Navbar,
   NavbarContent,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { IconArrowLeft } from "@tabler/icons-react";
 
 const PATH_TO_NAME_MAP: Record<string, string> = {

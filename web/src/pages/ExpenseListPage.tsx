@@ -16,7 +16,7 @@ import {
   Listbox,
   ListboxItem,
   ListboxSection,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { useMe } from "../hooks/useMe";
 import { SettleUpModal } from "../components/SettleUpModal";
 import { CategoryIcon } from "../components/CategoryIcon";

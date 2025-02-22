@@ -1,20 +1,21 @@
 import { useMe } from "../hooks/useMe";
 import { AppCard } from "../components/AppCard";
 import { IconMoneybag } from "@tabler/icons-react";
-import { Input } from "@nextui-org/react";
+import { addToast, Input } from "@heroui/react";
 import { useCallback, useState } from "react";
-import { useToast } from "../hooks/useToast";
 
 export const HomePage = () => {
-  const toast = useToast();
   const me = useMe({ suspense: true });
   const [phone, setPhone] = useState(me.data.phone_number ?? "");
 
   const savePhone = useCallback(() => {
     me.patchMe({ phone_number: phone }).then(() =>
-      toast.show("Telefonnummer uppdaterat")
+      addToast({
+        title: "Telefonnummer uppdaterat",
+        color: "success",
+      }),
     );
-  }, [me, phone, toast]);
+  }, [me, phone]);
 
   return (
     <div className="p-4 page">

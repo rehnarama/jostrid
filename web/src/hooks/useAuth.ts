@@ -7,11 +7,11 @@ import {
 import { jwtDecode, JwtPayload } from "jwt-decode";
 import { useLocation, useNavigate } from "react-router";
 import { useSearchParams } from "react-router-dom";
-import { useToast } from "./useToast";
 import memoize from "lodash-es/memoize";
 import { z } from "zod";
 import EventEmitter from "eventemitter3";
 import { toError } from "../lib/utils";
+import { addToast } from "@heroui/react";
 
 const AuthenticationResultDto = z.object({
   user: z.object({
@@ -39,7 +39,7 @@ class AuthClient extends EventEmitter<"change"> {
     super();
 
     const result = AuthenticationResultDto.safeParse(
-      JSON.parse(localStorage[AUTH_RESULT_KEY] ?? "{}")
+      JSON.parse(localStorage[AUTH_RESULT_KEY] ?? "{}"),
     );
     if (result.success) {
       this.setAuthResult(result.data);
@@ -58,14 +58,14 @@ class AuthClient extends EventEmitter<"change"> {
       return (await this.refreshToken()).access_token;
     } else {
       throw new Error(
-        "No valid token nor any refresh token. User need to login again"
+        "No valid token nor any refresh token. User need to login again",
       );
     }
   };
 
   public acquireToken = memoize(async (code: string, state: string) => {
     const response = await fetch(
-      `/api/oauth/callback?code=${code}&state=${state}`
+      `/api/oauth/callback?code=${code}&state=${state}`,
     );
     const data = await response.json();
     this.setAuthResult(AuthenticationResultDto.parse(data));
@@ -86,7 +86,7 @@ class AuthClient extends EventEmitter<"change"> {
       this.data.authResult.refresh_token === undefined
     ) {
       throw new Error(
-        "No refresh token available to refresh access token with."
+        "No refresh token available to refresh access token with.",
       );
     }
 
@@ -105,7 +105,7 @@ class AuthClient extends EventEmitter<"change"> {
       return data;
     } catch (e) {
       console.error(
-        new Error("Failed to refresh token", { cause: toError(e) })
+        new Error("Failed to refresh token", { cause: toError(e) }),
       );
       this.data = null;
       this.emit("change");
@@ -156,7 +156,6 @@ export const useAuth = () => {
   const location = useLocation();
   const clientData = client.use();
   const [searchParams] = useSearchParams();
-  const toast = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -165,14 +164,18 @@ export const useAuth = () => {
       const state = searchParams.get("state");
 
       if (!code || !state) {
-        toast.show("Failed to login", "Missing either code or state", "danger");
+        addToast({
+          title: "Failed to login",
+          description: "Missing either code or state",
+          color: "danger",
+        });
         navigate("/login");
         return;
       }
 
       client.acquireToken(code, state);
     }
-  }, [location, navigate, searchParams, toast]);
+  }, [location, navigate, searchParams]);
 
   const login = useCallback(async () => {
     const redirectUrlResponse = await fetch("/api/oauth/redirect");

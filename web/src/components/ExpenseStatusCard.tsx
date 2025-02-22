@@ -4,7 +4,7 @@ import {
   CardBody,
   CardFooter,
   CardHeader,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { IconPlus, IconScale } from "@tabler/icons-react";
 import { formatCurrency, getBalances } from "../utils/expenseUtils";
 import { useExpenses } from "../hooks/useExpenses";

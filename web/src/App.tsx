@@ -8,9 +8,8 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { routes } from "./routes";
-import { ToastProvider } from "./hooks/useToast";
 import { TopMenu } from "./components/TopMenu";
-import { NextUIProvider, Progress } from "@nextui-org/react";
+import { HeroUIProvider, Progress, ToastProvider } from "@heroui/react";
 import { useTransition } from "react";
 import { AuthGuard } from "./hooks/useAuth";
 
@@ -30,22 +29,21 @@ const Bootstrap = () => {
   };
 
   return (
-    <NextUIProvider navigate={navigate} useHref={useHref}>
-      <ToastProvider>
-        {isTransitioning && (
-          <Progress
-            className="fixed top-0 left-0 right-0 z-50 fade-in"
-            size="sm"
-            isIndeterminate
-            aria-label="Loading page"
-          />
-        )}
-        <TopMenu />
-        <AuthGuard>
-          <Outlet />
-        </AuthGuard>
-      </ToastProvider>
-    </NextUIProvider>
+    <HeroUIProvider navigate={navigate} useHref={useHref}>
+      <ToastProvider />
+      {isTransitioning && (
+        <Progress
+          className="fixed top-0 left-0 right-0 z-50 fade-in"
+          size="sm"
+          isIndeterminate
+          aria-label="Loading page"
+        />
+      )}
+      <TopMenu />
+      <AuthGuard>
+        <Outlet />
+      </AuthGuard>
+    </HeroUIProvider>
   );
 };
 

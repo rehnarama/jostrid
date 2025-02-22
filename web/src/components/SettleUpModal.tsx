@@ -2,10 +2,10 @@ import { useRef, useState } from "react";
 import { UserDto, useUsers } from "../hooks/useUser";
 import { assert } from "../utils/assert";
 import { useExpenses } from "../hooks/useExpenses";
-import { useToast } from "../hooks/useToast";
 import {
   Accordion,
   AccordionItem,
+  addToast,
   Avatar,
   Button,
   Chip,
@@ -17,7 +17,7 @@ import {
   ModalHeader,
   Select,
   SelectItem,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { CurrencyBalances, formatCurrency } from "../utils/expenseUtils";
 import { MeDto, useMe } from "../hooks/useMe";
 import { errorLikeToMessage, generateSwishLink } from "../lib/utils";
@@ -46,11 +46,10 @@ export const SettleUpModal = (props: SettleUpModalProps) => {
   const users = useUsers().data;
   const [isSettlingUp, setIsSettlingUp] = useState(false);
   const expenses = useExpenses({ isPaused: () => true });
-  const toast = useToast();
 
   const onRegisterPayment = async (
     { payerId, receiverId, total, currency }: Payment,
-    openSwish = false
+    openSwish = false,
   ) => {
     const payer = users.find((user) => user.id === payerId);
     const receiver = users.find((user) => user.id === receiverId);
@@ -75,11 +74,10 @@ export const SettleUpModal = (props: SettleUpModalProps) => {
           },
         ],
       });
-      toast.show(
-        `Betalning på ${formatCurrency(total, currency)} registrerad`,
-        undefined,
-        "success"
-      );
+      addToast({
+        title: `Betalning på ${formatCurrency(total, currency)} registrerad`,
+        color: "success",
+      });
 
       if (openSwish) {
         assert(currency === "SEK", "Swish is only valid for SEK");
@@ -88,13 +86,17 @@ export const SettleUpModal = (props: SettleUpModalProps) => {
         const link = generateSwishLink(
           receiver.phone_number,
           total / 100,
-          "Betalning via jostrid.se"
+          "Betalning via jostrid.se",
         );
         window.open(link, "_blank");
       }
       props.onClose?.();
     } catch (e) {
-      toast.show("Misslyckades göra upp", errorLikeToMessage(e), "danger");
+      addToast({
+        title: "Misslyckades göra upp",
+        description: errorLikeToMessage(e),
+        color: "danger",
+      });
     } finally {
       setIsSettlingUp(false);
     }
@@ -112,7 +114,7 @@ export const SettleUpModal = (props: SettleUpModalProps) => {
           balance,
         };
       });
-    }
+    },
   );
 
   const myBalances = flatBalances.filter(({ user }) => user.id === me.id);
@@ -219,7 +221,7 @@ function SettleUpBalanceForm({
         total,
         currency: balance.currency,
       },
-      openSwish
+      openSwish,
     );
   };
   return (

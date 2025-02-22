@@ -1,10 +1,3 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
 export const toError = (e: unknown): Error => {
   if (e instanceof Error) {
     return e;
@@ -22,7 +15,7 @@ export const generateSwishLink = (
   phoneNumber: string,
   amount: number,
   message: string,
-  edit = "amt,msg"
+  edit = "amt,msg",
 ): string => {
   // https://developer.swish.nu/documentation/guides/generate-qr-codes#create-qr-code-from-specification
   // Amount to pay, empty values are not allowed. Decimal separator is '.'

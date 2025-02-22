@@ -6,8 +6,8 @@ import { FormEvent, useState } from "react";
 import { UserDto, useUsers } from "../hooks/useUser";
 import { assert } from "../utils/assert";
 import { Expense, UpsertExpenseDto, useExpenses } from "../hooks/useExpenses";
-import { useToast } from "../hooks/useToast";
 import {
+  addToast,
   Button,
   Form,
   Input,
@@ -20,7 +20,7 @@ import {
   Select,
   SelectItem,
   Slider,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { MeDto, useMe } from "../hooks/useMe";
 import { errorLikeToMessage } from "../lib/utils";
 import { IconDivide, IconMinus, IconPlus, IconX } from "@tabler/icons-react";
@@ -47,7 +47,6 @@ const NewExpenseModalContent = ({
 }: NewExpenseModalContentProps) => {
   const users = unsortedUsers.toSorted((a, b) => a.id - b.id);
 
-  const toast = useToast();
   const { upsert: upsertExpense, remove: removeExpense } = useExpenses({
     isPaused: () => true,
   });
@@ -62,13 +61,13 @@ const NewExpenseModalContent = ({
                 100 *
                   (expense.paid_by === share.user_id
                     ? expense.total - share.share
-                    : -share.share)
-              ) / expense.total
+                    : -share.share),
+              ) / expense.total,
           )
-      : users.map(() => 100 / users.length)
+      : users.map(() => 100 / users.length),
   );
   const [total, setTotal] = useState(
-    expense ? String(expense.total / 100) : ""
+    expense ? String(expense.total / 100) : "",
   );
 
   const [isCreating, setIsCreating] = useState(false);
@@ -117,7 +116,11 @@ const NewExpenseModalContent = ({
       await upsertExpense(createExpenseDto);
       onClose?.();
     } catch (e) {
-      toast.show("Failed to create expense", errorLikeToMessage(e), "danger");
+      addToast({
+        title: "Failed to create expense",
+        description: errorLikeToMessage(e),
+        color: "danger",
+      });
     } finally {
       setIsCreating(false);
     }
