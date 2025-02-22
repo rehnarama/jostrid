@@ -3,12 +3,8 @@ import { UserDto, useUsers } from "../hooks/useUser";
 import { assert } from "../utils/assert";
 import { useExpenses } from "../hooks/useExpenses";
 import {
-  Accordion,
-  AccordionItem,
   addToast,
-  Avatar,
   Button,
-  Chip,
   Form,
   Input,
   Modal,
@@ -18,20 +14,14 @@ import {
   Select,
   SelectItem,
 } from "@heroui/react";
-import { CurrencyBalances, formatCurrency } from "../utils/expenseUtils";
+import { formatCurrency } from "../utils/expenseUtils";
 import { MeDto, useMe } from "../hooks/useMe";
 import { errorLikeToMessage, generateSwishLink } from "../lib/utils";
-
-const UNKNOWN_USER: UserDto = {
-  id: -1,
-  name: "Unknown",
-  phone_number: null,
-};
 
 export interface SettleUpModalProps {
   open?: boolean;
   onClose?: () => void;
-  balances: CurrencyBalances;
+  balance: FlatBalance | undefined;
 }
 
 interface Payment {
@@ -41,7 +31,14 @@ interface Payment {
   currency: string;
 }
 
+export interface FlatBalance {
+  currency: string;
+  user: { id: number; name: string; phone_number: string | null };
+  balance: number;
+}
+
 export const SettleUpModal = (props: SettleUpModalProps) => {
+  const { balance } = props;
   const me = useMe({ suspense: true }).data;
   const users = useUsers().data;
   const [isSettlingUp, setIsSettlingUp] = useState(false);
@@ -102,82 +99,20 @@ export const SettleUpModal = (props: SettleUpModalProps) => {
     }
   };
 
-  const flatBalances = Object.entries(props.balances).flatMap(
-    ([currency, currencyBalance]) => {
-      return Object.entries(currencyBalance).map(([userId, balance]) => {
-        const user =
-          users.find((user) => user.id === Number(userId)) ?? UNKNOWN_USER;
-
-        return {
-          currency,
-          user,
-          balance,
-        };
-      });
-    },
-  );
-
-  const myBalances = flatBalances.filter(({ user }) => user.id === me.id);
-  const otherBalances = flatBalances
-    .filter(({ user }) => user.id !== me.id)
-    .filter(({ balance }) => balance !== 0);
-
   return (
     <Modal isOpen={props.open ?? false} onClose={props.onClose}>
       <ModalContent className="max-h-dvh overflow-y-auto">
-        <ModalHeader>Välj ett saldo att göra upp</ModalHeader>
+        <ModalHeader>Registrera Betalning</ModalHeader>
         <ModalBody>
-          <div className="flex gap-1">
-            <p>Dina saldon:</p>
-            {myBalances.map((balance) => {
-              return (
-                <Chip
-                  key={`${balance.currency}:${balance.balance}`}
-                  size="sm"
-                  color={
-                    balance.balance < 0
-                      ? "success"
-                      : balance.balance > 0
-                        ? "danger"
-                        : "default"
-                  }
-                >
-                  {formatCurrency(Math.abs(balance.balance), balance.currency)}
-                </Chip>
-              );
-            })}
-          </div>
-          <Accordion aria-label="Non-even balances to settle up">
-            {otherBalances.map((balance) => {
-              return (
-                <AccordionItem
-                  key={`${balance.currency}:${balance.user.id}`}
-                  startContent={
-                    <Avatar
-                      name={balance.user.name}
-                      className="flex-shrink-0"
-                    />
-                  }
-                  title={balance.user.name}
-                  subtitle={
-                    balance.balance > 0
-                      ? `Ska få tillbaka ${formatCurrency(balance.balance, balance.currency)}`
-                      : `Är skyldig ${formatCurrency(Math.abs(balance.balance), balance.currency)}`
-                  }
-                >
-                  <h1 className="mb-1">Registrera betalning</h1>
-
-                  <SettleUpBalanceForm
-                    balance={balance}
-                    onRegisterPayment={onRegisterPayment}
-                    me={me}
-                    users={users}
-                    isSettlingUp={isSettlingUp}
-                  />
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
+          {balance && (
+            <SettleUpBalanceForm
+              balance={balance}
+              onRegisterPayment={onRegisterPayment}
+              me={me}
+              users={users}
+              isSettlingUp={isSettlingUp}
+            />
+          )}
         </ModalBody>
       </ModalContent>
     </Modal>
@@ -185,11 +120,7 @@ export const SettleUpModal = (props: SettleUpModalProps) => {
 };
 
 interface SettleUpBalanceFormProps {
-  balance: {
-    currency: string;
-    user: { id: number; name: string; phone_number: string | null };
-    balance: number;
-  };
+  balance: FlatBalance;
   onRegisterPayment: (payment: Payment, openSwish?: boolean) => Promise<void>;
   isSettlingUp: boolean;
   me: MeDto;

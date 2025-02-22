@@ -11,14 +11,9 @@ import {
   getPaymentString,
 } from "../utils/expenseUtils";
 import { useUsers } from "../hooks/useUser";
-import {
-  Button,
-  Listbox,
-  ListboxItem,
-  ListboxSection,
-} from "@heroui/react";
+import { Button, Listbox, ListboxItem, ListboxSection } from "@heroui/react";
 import { useMe } from "../hooks/useMe";
-import { SettleUpModal } from "../components/SettleUpModal";
+import { FlatBalance, SettleUpModal } from "../components/SettleUpModal";
 import { CategoryIcon } from "../components/CategoryIcon";
 import { ExpenseStatusCard } from "../components/ExpenseStatusCard";
 
@@ -28,7 +23,9 @@ const PAGE_SIZE = 100;
 export const ExpenseListPage = () => {
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [newModalOpen, setNewModalOpen] = useState<boolean | Expense>(false);
-  const [settleUpModalOpen, setSettleUpModalOpen] = useState(false);
+  const [balanceToSettleUp, setSettleBalanceToSettleUp] = useState<
+    FlatBalance | undefined
+  >(undefined);
   const { data: expenses } = useExpenses({ suspense: true });
   const { data: users } = useUsers();
   const me = useMe({ suspense: true }).data;
@@ -40,7 +37,7 @@ export const ExpenseListPage = () => {
     });
   }, [expenses, limit]);
   const dates = Object.keys(groupedExpenses).toSorted(
-    (a, b) => Number(b) - Number(a)
+    (a, b) => Number(b) - Number(a),
   );
 
   const balances = getBalances(expenses);
@@ -52,8 +49,9 @@ export const ExpenseListPage = () => {
   return (
     <div className="page">
       <ExpenseStatusCard
+        balances={balances}
         onAddPressed={() => setNewModalOpen(true)}
-        onSettleUpPressed={() => setSettleUpModalOpen(true)}
+        onSettleUpPressed={setSettleBalanceToSettleUp}
       />
       <Listbox aria-label="List of expenses">
         {dates.map((date) => {
@@ -115,9 +113,9 @@ export const ExpenseListPage = () => {
         onClose={() => setNewModalOpen(false)}
       />
       <SettleUpModal
-        open={settleUpModalOpen}
-        onClose={() => setSettleUpModalOpen(false)}
-        balances={balances}
+        open={balanceToSettleUp !== undefined}
+        onClose={() => setSettleBalanceToSettleUp(undefined)}
+        balance={balanceToSettleUp}
       />
     </div>
   );

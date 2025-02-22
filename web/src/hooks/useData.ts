@@ -11,15 +11,15 @@ export const useData = <
 >(
   url: string,
   schema: S,
-  config?: Config
+  config?: Config,
 ): SWRResponse<SchemaData<S>, Error, Config> => {
   const api = useApiClient();
-  return useSWR(
+  return useSWR<SchemaData<S>>(
     url,
     async (arg) => {
       const response = await api.fetch(`${arg}`);
       return schema.parse(await response.json());
     },
-    config
+    config,
   );
 };
