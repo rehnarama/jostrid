@@ -1,38 +1,8 @@
 import { useMe } from "../hooks/useMe";
 import { AppCard } from "../components/AppCard";
-import { IconMoneybag, IconHeart } from "@tabler/icons-react";
+import { IconMoneybag } from "@tabler/icons-react";
 import { addToast, Card, CardFooter, Input } from "@heroui/react";
 import { CSSProperties, useCallback, useState } from "react";
-import cat0 from "../assets/cats/cat0.jpg";
-import cat1 from "../assets/cats/cat1.jpg";
-import cat2 from "../assets/cats/cat2.jpg";
-import cat3 from "../assets/cats/cat3.jpg";
-import cat4 from "../assets/cats/cat4.jpg";
-import cat5 from "../assets/cats/cat5.jpg";
-import cat6 from "../assets/cats/cat6.jpg";
-import cat7 from "../assets/cats/cat7.jpg";
-import cat8 from "../assets/cats/cat8.jpg";
-import cat9 from "../assets/cats/cat9.jpg";
-import cat10 from "../assets/cats/cat10.jpg";
-import cat11 from "../assets/cats/cat11.jpg";
-import cat12 from "../assets/cats/cat12.jpg";
-
-const catImages = [
-  cat0,
-  cat1,
-  cat2,
-  cat3,
-  cat4,
-  cat5,
-  cat6,
-  cat7,
-  cat8,
-  cat9,
-  cat10,
-  cat11,
-  cat12,
-];
-const catIndex = Math.floor(Math.random() * catImages.length);
 
 export const HomePage = () => {
   const me = useMe({ suspense: true });
@@ -77,12 +47,6 @@ export const HomePage = () => {
           description="Lägg till utgifter"
           to="/expense"
           icon={<IconMoneybag />}
-        />
-        <AppCard
-          name="Jostrid 23"
-          description="Bröllopsbilder"
-          to="/wedding"
-          icon={<IconHeart />}
         />
       </div>
     </div>

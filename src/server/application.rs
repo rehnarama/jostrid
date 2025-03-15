@@ -23,7 +23,7 @@ use crate::{
         expense::get_expense_api,
         expense_category::get_expense_category_api,
         me::get_me_api,
-        user::get_user_api,
+        user::get_user_api, image::get_image_api,
     },
     service::auth_service::MicrosoftClaims,
 };
@@ -113,6 +113,7 @@ impl App {
             .nest("/api/expense_category", get_expense_category_api())
             .nest("/api/user", get_user_api())
             .nest("/api/me", get_me_api())
+            .nest("/api/image", get_image_api())
             .layer(jwt_auth.into_layer())
             .route("/api", get(hello_world))
             .nest("/api/oauth", auth::router())

@@ -11,5 +11,12 @@ export default {
     extend: {},
   },
   darkMode: "class",
-  plugins: [heroui()],
+  plugins: [
+    heroui(),
+    ({ addVariant }) => {
+      addVariant("fullscreen", "&:fullscreen");
+      addVariant("group-fullscreen", ":merge(.group):fullscreen &");
+      addVariant("peer-fullscreen", ":merge(.peer):fullscreen ~ &");
+    },
+  ],
 };
